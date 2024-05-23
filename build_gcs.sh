@@ -17,8 +17,11 @@ fi
 
 RESOURCE_PROVIDER=${RESOURCE_PROVIDER:-"kbs"}
 
-SourceDir=phf@10.12.32.134://home/phf/phf_dell/security-compute/code5/guest-components
-ROOTFS_DIR=/home/cfs/work/herve.pang/cc/kata-containers/target/initrd_dir
+SourceDir=phf@10.12.32.132://home/phf/phf_dell/security-compute/code6/coco-guest-components
+#TargetRootDir?=/home/cfs/work/herve.pang/cc/kata-containers
+#export TargetRootDir=xxx
+echo TargetRootDir=${TargetRootDir}
+ROOTFS_DIR=${TargetRootDir}/target/initrd_dir
 
 echo OP=${OP}
 echo TEE_PLATFORM=${TEE_PLATFORM}
