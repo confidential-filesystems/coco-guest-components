@@ -270,11 +270,207 @@ impl ::protobuf::reflect::ProtobufValue for UnsealSecretOutput {
 }
 
 #[derive(PartialEq,Clone,Default,Debug)]
+// @@protoc_insertion_point(message:api.ExtraCredential)
+pub struct ExtraCredential {
+    // message fields
+    // @@protoc_insertion_point(field:api.ExtraCredential.ControllerCrpToken)
+    pub ControllerCrpToken: ::std::string::String,
+    // @@protoc_insertion_point(field:api.ExtraCredential.ControllerAttestationReport)
+    pub ControllerAttestationReport: ::std::string::String,
+    // @@protoc_insertion_point(field:api.ExtraCredential.ControllerCertChain)
+    pub ControllerCertChain: ::std::string::String,
+    // @@protoc_insertion_point(field:api.ExtraCredential.AAAttester)
+    pub AAAttester: ::std::string::String,
+    // @@protoc_insertion_point(field:api.ExtraCredential.ContainerName)
+    pub ContainerName: ::std::string::String,
+    // special fields
+    // @@protoc_insertion_point(special_field:api.ExtraCredential.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a ExtraCredential {
+    fn default() -> &'a ExtraCredential {
+        <ExtraCredential as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl ExtraCredential {
+    pub fn new() -> ExtraCredential {
+        ::std::default::Default::default()
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(5);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "ControllerCrpToken",
+            |m: &ExtraCredential| { &m.ControllerCrpToken },
+            |m: &mut ExtraCredential| { &mut m.ControllerCrpToken },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "ControllerAttestationReport",
+            |m: &ExtraCredential| { &m.ControllerAttestationReport },
+            |m: &mut ExtraCredential| { &mut m.ControllerAttestationReport },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "ControllerCertChain",
+            |m: &ExtraCredential| { &m.ControllerCertChain },
+            |m: &mut ExtraCredential| { &mut m.ControllerCertChain },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "AAAttester",
+            |m: &ExtraCredential| { &m.AAAttester },
+            |m: &mut ExtraCredential| { &mut m.AAAttester },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "ContainerName",
+            |m: &ExtraCredential| { &m.ContainerName },
+            |m: &mut ExtraCredential| { &mut m.ContainerName },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<ExtraCredential>(
+            "ExtraCredential",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for ExtraCredential {
+    const NAME: &'static str = "ExtraCredential";
+
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                10 => {
+                    self.ControllerCrpToken = is.read_string()?;
+                },
+                18 => {
+                    self.ControllerAttestationReport = is.read_string()?;
+                },
+                26 => {
+                    self.ControllerCertChain = is.read_string()?;
+                },
+                34 => {
+                    self.AAAttester = is.read_string()?;
+                },
+                42 => {
+                    self.ContainerName = is.read_string()?;
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if !self.ControllerCrpToken.is_empty() {
+            my_size += ::protobuf::rt::string_size(1, &self.ControllerCrpToken);
+        }
+        if !self.ControllerAttestationReport.is_empty() {
+            my_size += ::protobuf::rt::string_size(2, &self.ControllerAttestationReport);
+        }
+        if !self.ControllerCertChain.is_empty() {
+            my_size += ::protobuf::rt::string_size(3, &self.ControllerCertChain);
+        }
+        if !self.AAAttester.is_empty() {
+            my_size += ::protobuf::rt::string_size(4, &self.AAAttester);
+        }
+        if !self.ContainerName.is_empty() {
+            my_size += ::protobuf::rt::string_size(5, &self.ContainerName);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if !self.ControllerCrpToken.is_empty() {
+            os.write_string(1, &self.ControllerCrpToken)?;
+        }
+        if !self.ControllerAttestationReport.is_empty() {
+            os.write_string(2, &self.ControllerAttestationReport)?;
+        }
+        if !self.ControllerCertChain.is_empty() {
+            os.write_string(3, &self.ControllerCertChain)?;
+        }
+        if !self.AAAttester.is_empty() {
+            os.write_string(4, &self.AAAttester)?;
+        }
+        if !self.ContainerName.is_empty() {
+            os.write_string(5, &self.ContainerName)?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> ExtraCredential {
+        ExtraCredential::new()
+    }
+
+    fn clear(&mut self) {
+        self.ControllerCrpToken.clear();
+        self.ControllerAttestationReport.clear();
+        self.ControllerCertChain.clear();
+        self.AAAttester.clear();
+        self.ContainerName.clear();
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static ExtraCredential {
+        static instance: ExtraCredential = ExtraCredential {
+            ControllerCrpToken: ::std::string::String::new(),
+            ControllerAttestationReport: ::std::string::String::new(),
+            ControllerCertChain: ::std::string::String::new(),
+            AAAttester: ::std::string::String::new(),
+            ContainerName: ::std::string::String::new(),
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for ExtraCredential {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("ExtraCredential").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for ExtraCredential {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for ExtraCredential {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
+#[derive(PartialEq,Clone,Default,Debug)]
 // @@protoc_insertion_point(message:api.GetResourceRequest)
 pub struct GetResourceRequest {
     // message fields
     // @@protoc_insertion_point(field:api.GetResourceRequest.ResourcePath)
     pub ResourcePath: ::std::string::String,
+    // @@protoc_insertion_point(field:api.GetResourceRequest.ExtraCredential)
+    pub ExtraCredential: ::protobuf::MessageField<ExtraCredential>,
     // special fields
     // @@protoc_insertion_point(special_field:api.GetResourceRequest.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -292,12 +488,17 @@ impl GetResourceRequest {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(1);
+        let mut fields = ::std::vec::Vec::with_capacity(2);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
             "ResourcePath",
             |m: &GetResourceRequest| { &m.ResourcePath },
             |m: &mut GetResourceRequest| { &mut m.ResourcePath },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, ExtraCredential>(
+            "ExtraCredential",
+            |m: &GetResourceRequest| { &m.ExtraCredential },
+            |m: &mut GetResourceRequest| { &mut m.ExtraCredential },
         ));
         ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<GetResourceRequest>(
             "GetResourceRequest",
@@ -320,6 +521,9 @@ impl ::protobuf::Message for GetResourceRequest {
                 10 => {
                     self.ResourcePath = is.read_string()?;
                 },
+                18 => {
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.ExtraCredential)?;
+                },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
                 },
@@ -335,6 +539,10 @@ impl ::protobuf::Message for GetResourceRequest {
         if !self.ResourcePath.is_empty() {
             my_size += ::protobuf::rt::string_size(1, &self.ResourcePath);
         }
+        if let Some(v) = self.ExtraCredential.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
         my_size
@@ -343,6 +551,9 @@ impl ::protobuf::Message for GetResourceRequest {
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
         if !self.ResourcePath.is_empty() {
             os.write_string(1, &self.ResourcePath)?;
+        }
+        if let Some(v) = self.ExtraCredential.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -362,12 +573,14 @@ impl ::protobuf::Message for GetResourceRequest {
 
     fn clear(&mut self) {
         self.ResourcePath.clear();
+        self.ExtraCredential.clear();
         self.special_fields.clear();
     }
 
     fn default_instance() -> &'static GetResourceRequest {
         static instance: GetResourceRequest = GetResourceRequest {
             ResourcePath: ::std::string::String::new(),
+            ExtraCredential: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -516,13 +729,19 @@ impl ::protobuf::reflect::ProtobufValue for GetResourceResponse {
 static file_descriptor_proto_data: &'static [u8] = b"\
     \n\tapi.proto\x12\x03api\"+\n\x11UnsealSecretInput\x12\x16\n\x06secret\
     \x18\x01\x20\x01(\x0cR\x06secret\"2\n\x12UnsealSecretOutput\x12\x1c\n\tp\
-    laintext\x18\x01\x20\x01(\x0cR\tplaintext\"8\n\x12GetResourceRequest\x12\
-    \"\n\x0cResourcePath\x18\x01\x20\x01(\tR\x0cResourcePath\"1\n\x13GetReso\
-    urceResponse\x12\x1a\n\x08Resource\x18\x01\x20\x01(\x0cR\x08Resource2V\n\
-    \x13SealedSecretService\x12?\n\x0cUnsealSecret\x12\x16.api.UnsealSecretI\
-    nput\x1a\x17.api.UnsealSecretOutput2V\n\x12GetResourceService\x12@\n\x0b\
-    GetResource\x12\x17.api.GetResourceRequest\x1a\x18.api.GetResourceRespon\
-    seb\x06proto3\
+    laintext\x18\x01\x20\x01(\x0cR\tplaintext\"\xfb\x01\n\x0fExtraCredential\
+    \x12.\n\x12ControllerCrpToken\x18\x01\x20\x01(\tR\x12ControllerCrpToken\
+    \x12@\n\x1bControllerAttestationReport\x18\x02\x20\x01(\tR\x1bController\
+    AttestationReport\x120\n\x13ControllerCertChain\x18\x03\x20\x01(\tR\x13C\
+    ontrollerCertChain\x12\x1e\n\nAAAttester\x18\x04\x20\x01(\tR\nAAAttester\
+    \x12$\n\rContainerName\x18\x05\x20\x01(\tR\rContainerName\"x\n\x12GetRes\
+    ourceRequest\x12\"\n\x0cResourcePath\x18\x01\x20\x01(\tR\x0cResourcePath\
+    \x12>\n\x0fExtraCredential\x18\x02\x20\x01(\x0b2\x14.api.ExtraCredential\
+    R\x0fExtraCredential\"1\n\x13GetResourceResponse\x12\x1a\n\x08Resource\
+    \x18\x01\x20\x01(\x0cR\x08Resource2V\n\x13SealedSecretService\x12?\n\x0c\
+    UnsealSecret\x12\x16.api.UnsealSecretInput\x1a\x17.api.UnsealSecretOutpu\
+    t2V\n\x12GetResourceService\x12@\n\x0bGetResource\x12\x17.api.GetResourc\
+    eRequest\x1a\x18.api.GetResourceResponseb\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -540,9 +759,10 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     file_descriptor.get(|| {
         let generated_file_descriptor = generated_file_descriptor_lazy.get(|| {
             let mut deps = ::std::vec::Vec::with_capacity(0);
-            let mut messages = ::std::vec::Vec::with_capacity(4);
+            let mut messages = ::std::vec::Vec::with_capacity(5);
             messages.push(UnsealSecretInput::generated_message_descriptor_data());
             messages.push(UnsealSecretOutput::generated_message_descriptor_data());
+            messages.push(ExtraCredential::generated_message_descriptor_data());
             messages.push(GetResourceRequest::generated_message_descriptor_data());
             messages.push(GetResourceResponse::generated_message_descriptor_data());
             let mut enums = ::std::vec::Vec::with_capacity(0);

@@ -15,6 +15,15 @@ use self::policy_requirement::PolicyReqType;
 use super::image;
 use super::mechanism::SignScheme;
 
+#[cfg(feature = "signature-cosign")]
+use sigstore::cosign::SignatureLayer;
+
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 pub mod policy_requirement;
 pub mod ref_match;
 
@@ -50,8 +59,11 @@ impl Policy {
         &mut self,
         mut image: image::Image,
         auth: &RegistryAuth,
+        signature_layers: Vec<SignatureLayer>,
+        ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<()> {
         // Get the policy set that matches the image.
+        slog::info!(sl(), "confilesystem18 - Policy.is_image_allowed(): -1 image.transport_name() = {}", image.transport_name());
         let reqs = self.requirements_for_image(&image);
         if reqs.is_empty() {
             bail!("List of verification policy requirements must not be empty");
@@ -59,7 +71,8 @@ impl Policy {
 
         // The image must meet the requirements of each policy in the policy set.
         for req in reqs.iter() {
-            req.allows_image(&mut image, auth).await?;
+            slog::info!(sl(), "confilesystem18 - Policy.is_image_allowed(): -2 req {:?}", req);
+            req.allows_image(&mut image, auth, signature_layers.clone(), ie_data).await?;
         }
 
         Ok(())
@@ -78,9 +91,13 @@ impl Policy {
         // Get transport name of the image
         let transport_name = image.transport_name();
 
+        slog::info!(sl(), "confilesystem1 - Policy.requirements_for_image(): transport_name = {:?}", transport_name);
+        slog::info!(sl(), "confilesystem1 - Policy.requirements_for_image(): self.transports = {:?}", self.transports);
         if let Some(transport_scopes) = self.transports.get_mut(&transport_name) {
             // Look for a full match.
+            slog::info!(sl(), "confilesystem1 - Policy.requirements_for_image(): transport_scopes = {:?}", transport_scopes);
             let identity = image.reference.whole();
+            slog::info!(sl(), "confilesystem1 - Policy.requirements_for_image(): identity = {:?}", identity);
             if transport_scopes.contains_key(&identity) {
                 return transport_scopes
                     .get_mut(&identity)
@@ -89,6 +106,7 @@ impl Policy {
 
             // Look for a match of the possible parent namespaces.
             for name in image::get_image_namespaces(&image.reference).iter() {
+                slog::info!(sl(), "confilesystem1 - Policy.requirements_for_image(): name = {:?}", name);
                 if transport_scopes.contains_key(name) {
                     return transport_scopes.get_mut(name).expect("Unexpected contains");
                 }
@@ -100,6 +118,7 @@ impl Policy {
             }
         }
 
+        slog::info!(sl(), "confilesystem1 - Policy.requirements_for_image(): return self.default = {:?}", self.default);
         &mut self.default
     }
 }

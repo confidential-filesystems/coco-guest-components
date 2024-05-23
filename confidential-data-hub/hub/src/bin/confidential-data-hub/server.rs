@@ -49,9 +49,10 @@ impl SealedSecretService for Server {
         input: UnsealSecretInput,
     ) -> ::ttrpc::Result<UnsealSecretOutput> {
         debug!("get new UnsealSecret request");
+        let extra_credential = attester::extra_credential::ExtraCredential::default();
         let reader = HUB.read().await;
         let reader = reader.as_ref().expect("must be initialized");
-        let plaintext = reader.unseal_secret(input.secret).await.map_err(|e| {
+        let plaintext = reader.unseal_secret(input.secret, &extra_credential).await.map_err(|e| {
             let mut status = Status::new();
             status.set_code(Code::INTERNAL);
             status.set_message(format!("[CDH] [ERROR]: Unseal Secret failed: {e}"));
@@ -75,7 +76,22 @@ impl GetResourceService for Server {
         debug!("get new GetResource request");
         let reader = HUB.read().await;
         let reader = reader.as_ref().expect("must be initialized");
-        let resource = reader.get_resource(req.ResourcePath).await.map_err(|e| {
+
+        let extra_credential_proto = &req.ExtraCredential.unwrap();
+        log::info!("confilesystem6 - CDH-Service - ttrpc.get_resource(): extra_credential_proto.ControllerCrpToken.len() = {:?}, \
+                extra_credential_proto.AAAttester = {:?}, extra_credential_proto.ContainerName = {:?}",
+                extra_credential_proto.ControllerCrpToken.len(),
+                extra_credential_proto.AAAttester,
+                extra_credential_proto.ContainerName);
+        let extra_credential = attester::extra_credential::ExtraCredential::new(
+            extra_credential_proto.ControllerCrpToken.clone(),
+            extra_credential_proto.ControllerAttestationReport.clone(),
+            extra_credential_proto.ControllerCertChain.clone(),
+            extra_credential_proto.AAAttester.clone(),
+            extra_credential_proto.ContainerName.clone(),
+        );
+
+        let resource = reader.get_resource(req.ResourcePath, &extra_credential).await.map_err(|e| {
             let mut status = Status::new();
             status.set_code(Code::INTERNAL);
             status.set_message(format!("[CDH] [ERROR]: Get Resource failed: {e}"));

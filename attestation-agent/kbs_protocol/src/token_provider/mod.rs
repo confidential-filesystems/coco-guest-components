@@ -27,7 +27,7 @@ pub trait TokenProvider: Send + Sync {
     /// Get token provisioned by Kbs and the tee pub key
     ///
     /// The returned value is a (Token, Private key) pair.
-    async fn get_token(&self) -> crate::Result<(Token, TeeKeyPair)>;
+    async fn get_token(&self, extra_credential: &attester::extra_credential::ExtraCredential) -> crate::Result<(Token, TeeKeyPair)>;
 }
 
 #[derive(Clone, Debug)]

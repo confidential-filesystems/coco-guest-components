@@ -30,7 +30,7 @@ pub struct TdxAttester {}
 
 #[async_trait::async_trait]
 impl Attester for TdxAttester {
-    async fn get_evidence(&self, mut report_data: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, mut report_data: Vec<u8>, _extra_credential: &crate::extra_credential::ExtraCredential) -> Result<String> {
         if report_data.len() > 64 {
             bail!("TDX Attester: Report data must be no more than 64 bytes");
         }

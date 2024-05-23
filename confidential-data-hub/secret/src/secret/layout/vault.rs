@@ -26,13 +26,13 @@ pub struct VaultSecret {
 }
 
 impl VaultSecret {
-    pub(crate) async fn unseal(&self) -> Result<Vec<u8>> {
+    pub(crate) async fn unseal(&self, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         let mut provider = kms::new_getter(&self.provider, self.provider_settings.clone())
             .await
             .map_err(|e| Error::UnsealVaultFailed(format!("create provider failed: {e}")))?;
 
         let secret = provider
-            .get_secret(&self.name, &self.annotations)
+            .get_secret(&self.name, &self.annotations, extra_credential)
             .await
             .map_err(|e| {
                 Error::UnsealVaultFailed(format!("get secret from provider failed: {e}"))

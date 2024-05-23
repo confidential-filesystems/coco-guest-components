@@ -35,6 +35,16 @@ pub mod grpc {
             request: Request<GetTokenRequest>,
         ) -> Result<Response<GetTokenResponse>, Status> {
             let request = request.into_inner();
+            info!("confilesystem10 - AA-Service - grpc.get_token(): request = {:?}, request.ExtraCredential = {:?}",
+                     request, request.ExtraCredential);
+
+            let extra_credential = attester::extra_credential::ExtraCredential {
+                controller_crp_token: request.ExtraCredential.ControllerCrpToken,
+                controller_attestation_report: request.ExtraCredential.ControllerAttestationReport,
+                controller_cert_chain: request.ExtraCredential.ControllerCertChain,
+                aa_attester: request.ExtraCredential.AAAttester,
+                container_name: request.ExtraCredential.ContainerName,
+            };
 
             let attestation_agent_mutex_clone = Arc::clone(&ASYNC_ATTESTATION_AGENT);
             let mut attestation_agent = attestation_agent_mutex_clone.lock().await;
@@ -42,7 +52,7 @@ pub mod grpc {
             debug!("Call AA to get token ...");
 
             let token = attestation_agent
-                .get_token(&request.token_type)
+                .get_token(&request.token_type, &extra_credential)
                 .await
                 .map_err(|e| {
                     error!("Call AA to get token failed: {}", e);
@@ -61,6 +71,16 @@ pub mod grpc {
             request: Request<GetEvidenceRequest>,
         ) -> Result<Response<GetEvidenceResponse>, Status> {
             let request = request.into_inner();
+            info!("confilesystem10 - AA-Service - grpc.get_evidence(): request = {:?}, request.ExtraCredential = {:?}",
+                     request, request.ExtraCredential);
+
+            let extra_credential = attester::extra_credential::ExtraCredential {
+                controller_crp_token: request.ExtraCredential.ControllerCrpToken,
+                controller_attestation_report: request.ExtraCredential.ControllerAttestationReport,
+                controller_cert_chain: request.ExtraCredential.ControllerCertChain,
+                aa_attester: request.ExtraCredential.AAAttester,
+                container_name: request.ExtraCredential.ContainerName,
+            };
 
             let attestation_agent_mutex_clone = Arc::clone(&ASYNC_ATTESTATION_AGENT);
             let mut attestation_agent = attestation_agent_mutex_clone.lock().await;
@@ -68,7 +88,7 @@ pub mod grpc {
             debug!("Call AA to get evidence ...");
 
             let evidence = attestation_agent
-                .get_evidence(&request.runtime_data)
+                .get_evidence(&request.runtime_data, &extra_credential)
                 .await
                 .map_err(|e| {
                     error!("Call AA to get evidence failed: {}", e);
@@ -120,11 +140,25 @@ pub mod ttrpc {
         ) -> ::ttrpc::Result<attestation_agent::GetTokenResponse> {
             debug!("Call AA to get token ...");
 
+            let extra_credential_proto = &req.ExtraCredential.unwrap();
+            info!("confilesystem10 - AA-Service - ttrpc.get_token(): extra_credential_proto.ControllerCrpToken.len() = {:?}, \
+                extra_credential_proto.AAAttester = {:?}, extra_credential_proto.ContainerName = {:?}",
+                extra_credential_proto.ControllerCrpToken.len(),
+                extra_credential_proto.AAAttester,
+                extra_credential_proto.ContainerName);
+            let extra_credential = attester::extra_credential::ExtraCredential::new(
+                extra_credential_proto.ControllerCrpToken.clone(),
+                extra_credential_proto.ControllerAttestationReport.clone(),
+                extra_credential_proto.ControllerCertChain.clone(),
+                extra_credential_proto.AAAttester.clone(),
+                extra_credential_proto.ContainerName.clone(),
+            );
+
             let attestation_agent_mutex_clone = ASYNC_ATTESTATION_AGENT.clone();
             let mut attestation_agent = attestation_agent_mutex_clone.lock().await;
 
             let token = attestation_agent
-                .get_token(&req.TokenType)
+                .get_token(&req.TokenType, &extra_credential)
                 .await
                 .map_err(|e| {
                     error!("Call AA-KBC to get token failed: {}", e);
@@ -152,11 +186,25 @@ pub mod ttrpc {
         ) -> ::ttrpc::Result<attestation_agent::GetEvidenceResponse> {
             debug!("Call AA to get evidence ...");
 
+            let extra_credential_proto = &req.ExtraCredential.unwrap();
+            info!("confilesystem10 - AA-Service - ttrpc.get_evidence(): extra_credential_proto.ControllerCrpToken.len() = {:?}, \
+                extra_credential_proto.AAAttester = {:?}, extra_credential_proto.ContainerName = {:?}",
+                extra_credential_proto.ControllerCrpToken.len(),
+                extra_credential_proto.AAAttester,
+                extra_credential_proto.ContainerName);
+            let extra_credential = attester::extra_credential::ExtraCredential::new(
+                extra_credential_proto.ControllerCrpToken.clone(),
+                extra_credential_proto.ControllerAttestationReport.clone(),
+                extra_credential_proto.ControllerCertChain.clone(),
+                extra_credential_proto.AAAttester.clone(),
+                extra_credential_proto.ContainerName.clone(),
+            );
+
             let attestation_agent_mutex_clone = ASYNC_ATTESTATION_AGENT.clone();
             let mut attestation_agent = attestation_agent_mutex_clone.lock().await;
 
             let evidence = attestation_agent
-                .get_evidence(&req.RuntimeData)
+                .get_evidence(&req.RuntimeData, &extra_credential)
                 .await
                 .map_err(|e| {
                     error!("Call AA-KBC to get evidence failed: {}", e);

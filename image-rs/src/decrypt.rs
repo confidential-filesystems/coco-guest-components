@@ -6,6 +6,11 @@ use anyhow::{bail, Result};
 use oci_distribution::manifest::{self, OciDescriptor};
 use tokio::io::AsyncRead;
 
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 /// Image layer encryption type information and associated methods to decrypt image layers.
 #[derive(Default, Clone, Debug)]
 pub struct Decryptor {
@@ -76,7 +81,10 @@ mod encryption {
             descriptor: &OciDescriptor,
             encrypted_layer: Vec<u8>,
             decrypt_config: &str,
+            ie_data: &crate::extra::token::InternalExtraData,
         ) -> Result<Vec<u8>> {
+            slog::info!(sl(), "confilesystem1 - get_plaintext_layer(): decrypt_config = {:?}", decrypt_config);
+
             if !self.is_encrypted() {
                 bail!("{}: {}", Self::ERR_UNENCRYPTED_MEDIA_TYPE, self.media_type);
             }
@@ -85,7 +93,7 @@ mod encryption {
             }
 
             let cc = create_decrypt_config(vec![decrypt_config.to_string()], vec![])?;
-            decrypt_layer_data(&encrypted_layer, descriptor, &cc)
+            decrypt_layer_data(&encrypted_layer, descriptor, &cc, ie_data)
                 .map(|(decrypted_data, _)| decrypted_data)
         }
 
@@ -94,7 +102,12 @@ mod encryption {
             &self,
             descriptor: &OciDescriptor,
             decrypt_config: &str,
+            ie_data: &crate::extra::token::InternalExtraData,
         ) -> Result<Vec<u8>> {
+            slog::info!(sl(), "confilesystem1 - get_decrypt_key(): decrypt_config = {:?}", decrypt_config);
+            slog::info!(sl(), "confilesystem7 - get_decrypt_key(): descriptor = {:?}", descriptor);
+            let new_ie_data = translate_ie_data(ie_data);
+
             if !self.is_encrypted() {
                 bail!("unencrypted media type: {}", self.media_type);
             }
@@ -104,7 +117,7 @@ mod encryption {
 
             let cc = create_decrypt_config(vec![decrypt_config.to_string()], vec![])?;
             if let Some(decrypt_config) = cc.decrypt_config {
-                decrypt_layer_key_opts_data(&decrypt_config, descriptor.annotations.as_ref())
+                decrypt_layer_key_opts_data(&decrypt_config, descriptor.annotations.as_ref(), &new_ie_data)
             } else {
                 Err(anyhow!("failed to retrieve decrypt key!"))
             }
@@ -130,13 +143,18 @@ mod encryption {
         encrypted_layer: &[u8],
         descriptor: &OciDescriptor,
         crypto_config: &CryptoConfig,
+        ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<(Vec<u8>, String)> {
+        slog::info!(sl(), "confilesystem1 - decrypt_layer_data(): crypto_config = {:?}", crypto_config);
+        let new_ie_data = translate_ie_data(ie_data);
+
         if let Some(decrypt_config) = &crypto_config.decrypt_config {
             let (layer_decryptor, dec_digest) = decrypt_layer(
                 decrypt_config,
                 encrypted_layer,
                 descriptor.annotations.as_ref(),
                 false,
+                &new_ie_data,
             )?;
             let mut plaintext_data: Vec<u8> = Vec::new();
             let mut decryptor =
@@ -313,6 +331,7 @@ mod encryption {
                     &d.descriptor,
                     d.encrypted_layer.clone(),
                     d.decrypt_config,
+                    None,
                 );
                 let msg = format!("{}: result: {:?}", msg, result);
 
@@ -320,6 +339,37 @@ mod encryption {
             }
         }
     }
+}
+
+pub fn translate_ie_data(ie_data: &crate::extra::token::InternalExtraData) -> ocicrypt_rs::token::InternalExtraData {
+    let mut authorized_res:Vec<ocicrypt_rs::token::AuthorizedRes> = Vec::new();
+    for res in &ie_data.authorized_res {
+        let new_res = ocicrypt_rs::token::AuthorizedRes{
+            exp: res.exp,
+            res: res.res.clone(),
+        };
+        authorized_res.push(new_res);
+    }
+
+    let new_ie_data =  ocicrypt_rs::token::InternalExtraData{
+        controller_crp_token: ie_data.controller_crp_token.clone(),
+        controller_attestation_report: ie_data.controller_attestation_report.clone(),
+        controller_cert_chain: ie_data.controller_cert_chain.clone(),
+        aa_attester: ie_data.aa_attester.clone(),
+        container_name: ie_data.container_name.clone(),
+        //
+        confidential_image_digests: ie_data.confidential_image_digests.clone(),
+        //
+        key_id: ie_data.key_id.clone(),
+        key_user: ie_data.key_user.clone(),
+        authorized_res: authorized_res,
+        runtime_res: ie_data.runtime_res.clone(),
+        //pub custom_claims: CustomClaims,
+        //
+        is_init_container: ie_data.is_init_container,
+        is_workload_container: ie_data.is_workload_container,
+    };
+    new_ie_data
 }
 
 #[cfg(not(feature = "encryption"))]

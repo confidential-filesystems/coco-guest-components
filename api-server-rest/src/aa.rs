@@ -12,7 +12,7 @@ use hyper::{Body, Method, Request, Response};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 
-use crate::TTRPC_TIMEOUT;
+use crate::{ttrpc_proto, TTRPC_TIMEOUT};
 
 /// ROOT path for Confidential Data Hub API
 pub const AA_ROOT: &str = "/aa";
@@ -21,8 +21,13 @@ pub const AA_ROOT: &str = "/aa";
 const AA_TOKEN_URL: &str = "/token";
 const AA_EVIDENCE_URL: &str = "/evidence";
 
+// 2024-04-01 : add by confilesystem
+const AA_TOKEN_URL_EXTRA: &str = "/token_extra";
+const AA_EVIDENCE_URL_EXTRA: &str = "/evidence_extra";
+
 pub struct AAClient {
     client: AttestationAgentServiceClient,
+    aa_attester: String,
     accepted_method: Vec<Method>,
 }
 
@@ -75,7 +80,56 @@ impl ApiHandler for AAClient {
                 }
                 None => return self.bad_request(),
             },
-
+            AA_TOKEN_URL_EXTRA => match params.get("token_type") {
+                Some(token_type) => {
+                    let extra_credential = match crate::utils::get_extra_credential_from_req(req).await {
+                        core::result::Result::Ok(content) => {
+                            println!("confilesystem10 - AAClient::handle_request(): get_extra_credential_from_req() -> content = {:?}", content);
+                            content
+                        },
+                        Err(e) => {
+                            println!("confilesystem10 - AAClient::handle_request(): get_extra_credential_from_req() -> e = {:?}", e);
+                            return self.bad_request();
+                        }
+                    };
+                    println!("confilesystem11 - AAClient::handle_request(): extra_credential = {:?}, self.aa_attester = {:?}",
+                             extra_credential, self.aa_attester);
+                    if self.aa_attester != extra_credential.aa_attester {
+                        return self.bad_request();
+                    }
+                    let results = self
+                        .get_token_extra(token_type, &extra_credential)
+                        .await
+                        .unwrap_or_else(|e| e.to_string().into());
+                    return self.octet_stream_response(results);
+                }
+                None => return self.bad_request(),
+            },
+            AA_EVIDENCE_URL_EXTRA => match params.get("runtime_data") {
+                Some(runtime_data) => {
+                    let extra_credential = match crate::utils::get_extra_credential_from_req(req).await {
+                        core::result::Result::Ok(content) => {
+                            println!("confilesystem10 - AAClient::handle_request(): get_extra_credential_from_req() -> content = {:?}", content);
+                            content
+                        },
+                        Err(e) => {
+                            println!("confilesystem10 - AAClient::handle_request(): get_extra_credential_from_req() -> e = {:?}", e);
+                            return self.bad_request();
+                        }
+                    };
+                    println!("confilesystem11 - AAClient::handle_request(): extra_credential = {:?}, self.aa_attester = {:?}",
+                             extra_credential, self.aa_attester);
+                    if self.aa_attester != extra_credential.aa_attester {
+                        return self.bad_request();
+                    }
+                    let results = self
+                        .get_evidence_extra(&runtime_data.clone().into_bytes(), &extra_credential)
+                        .await
+                        .unwrap_or_else(|e| e.to_string().into());
+                    return self.octet_stream_response(results);
+                }
+                None => return self.bad_request(),
+            },
             _ => {
                 return self.not_found();
             }
@@ -84,12 +138,13 @@ impl ApiHandler for AAClient {
 }
 
 impl AAClient {
-    pub fn new(aa_addr: &str, accepted_method: Vec<Method>) -> Result<Self> {
+    pub fn new(aa_addr: &str, aa_attester: &str, accepted_method: Vec<Method>) -> Result<Self> {
         let inner = ttrpc::asynchronous::Client::connect(aa_addr)?;
         let client = AttestationAgentServiceClient::new(inner);
 
         Ok(Self {
             client,
+            aa_attester: aa_attester.to_string(),
             accepted_method,
         })
     }
@@ -109,6 +164,56 @@ impl AAClient {
     pub async fn get_evidence(&self, runtime_data: &[u8]) -> Result<Vec<u8>> {
         let req = GetEvidenceRequest {
             RuntimeData: runtime_data.to_vec(),
+            ..Default::default()
+        };
+        let res = self
+            .client
+            .get_evidence(ttrpc::context::with_timeout(TTRPC_TIMEOUT), &req)
+            .await?;
+        Ok(res.Evidence)
+    }
+
+    pub async fn get_token_extra(&self, token_type: &str, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+        println!("confilesystem10 - AAClient::get_token_extra(): token_type = {:?}, extra_credential = {:?}",
+                 token_type, extra_credential);
+
+        let extra_credential_ttrpc = ttrpc_proto::attestation_agent::ExtraCredential {
+            ControllerCrpToken: extra_credential.controller_crp_token.clone(),
+            ControllerAttestationReport: extra_credential.controller_attestation_report.clone(),
+            ControllerCertChain: extra_credential.controller_cert_chain.clone(),
+            AAAttester: extra_credential.aa_attester.clone(),
+            ContainerName: extra_credential.container_name.clone(),
+            ..Default::default()
+        };
+
+        let req = GetTokenRequest {
+            TokenType: token_type.to_string(),
+            ExtraCredential: protobuf::MessageField::some(extra_credential_ttrpc),
+            ..Default::default()
+        };
+        let res = self
+            .client
+            .get_token(ttrpc::context::with_timeout(TTRPC_TIMEOUT), &req)
+            .await?;
+        Ok(res.Token)
+    }
+
+    pub async fn get_evidence_extra(&self, runtime_data: &[u8], extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+        println!("confilesystem10 - AAClient::get_evidence_extra(): runtime_data = {:?}, extra_credential = {:?}",
+                 runtime_data, extra_credential);
+
+        let extra_credential_ttrpc = ttrpc_proto::attestation_agent::ExtraCredential {
+            ControllerCrpToken: extra_credential.controller_crp_token.clone(),
+            ControllerAttestationReport: extra_credential.controller_attestation_report.clone(),
+            ControllerCertChain: extra_credential.controller_cert_chain.clone(),
+            AAAttester: extra_credential.aa_attester.clone(),
+            ContainerName: extra_credential.container_name.clone(),
+            ..Default::default()
+        };
+
+        let req = GetEvidenceRequest {
+            RuntimeData: runtime_data.to_vec(),
+            ExtraCredential: protobuf::MessageField::some(extra_credential_ttrpc),
             ..Default::default()
         };
         let res = self

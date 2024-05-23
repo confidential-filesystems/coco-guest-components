@@ -48,10 +48,10 @@ pub trait KbcInterface: Send {
     /// The reason why this interface consumes the [`AnnotationPacket`] instead of simply
     /// return the key by key id is that some potential KBCs which use specific KMS can not
     /// return the key, and the actual decryption process occurs in the KMS.
-    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket) -> Result<Vec<u8>>;
+    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
 
     /// Get resources managed by the attestation agent in asynchronous mode.
-    async fn get_resource(&mut self, _rid: ResourceUri) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, _rid: ResourceUri, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         bail!("Get Resource API of this KBC is unimplement!")
     }
 }

@@ -25,6 +25,7 @@ tonic = { workspace = true, optional = true }
 url.workspace = true
 uuid = { workspace = true, features = ["serde", "v4"], optional = true }
 zeroize.workspace = true
+attester = { path = "../attester", default-features = false }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

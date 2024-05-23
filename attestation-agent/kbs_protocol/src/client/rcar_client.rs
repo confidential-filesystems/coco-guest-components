@@ -42,13 +42,14 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
     /// It will check if the client already has a valid token. If so, return
     /// the token. If not, the client will generate a new key pair and do a new
     /// RCAR handshaking.
-    pub async fn get_token(&mut self) -> Result<(Token, TeeKeyPair)> {
+    pub async fn get_token(&mut self, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<(Token, TeeKeyPair)> {
+        log::info!("confilesystem6 - EvidenceProvider.get_token(): ");
         if let Some(token) = &self.token {
             if token.check_valid().is_err() {
                 let mut retry_times = 1;
                 loop {
                     let res = self
-                        .rcar_handshake()
+                        .rcar_handshake(extra_credential)
                         .await
                         .map_err(|e| Error::RcarHandshake(e.to_string()));
                     match res {
@@ -70,7 +71,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
             let mut retry_times = 1;
             loop {
                 let res = self
-                    .rcar_handshake()
+                    .rcar_handshake(extra_credential)
                     .await
                     .map_err(|e| Error::RcarHandshake(e.to_string()));
                 match res {
@@ -101,8 +102,10 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
     ///
     /// Note: if RCAR succeeds, the http client will record the cookie with the kbs server,
     /// which means that this client can be then used to retrieve resources.
-    async fn rcar_handshake(&mut self) -> anyhow::Result<()> {
+    async fn rcar_handshake(&mut self, extra_credential: &attester::extra_credential::ExtraCredential) -> anyhow::Result<()> {
         let auth_endpoint = format!("{}/{KBS_PREFIX}/auth", self.kbs_host_url);
+
+        log::info!("confilesystem8 - KbsClient.rcar_handshake(): auth_endpoint = {:?}", auth_endpoint);
 
         let tee = match &self._tee {
             ClientTee::Unitialized => {
@@ -131,12 +134,14 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
             .json::<Challenge>()
             .await?;
 
+        log::info!("confilesystem8 - KbsClient.rcar_handshake(): challenge = {:?}", challenge);
         debug!("get challenge: {challenge:#?}");
         let tee_pubkey = self.tee_key.export_pubkey()?;
         let materials = vec![tee_pubkey.k_mod.as_bytes(), tee_pubkey.k_exp.as_bytes()];
-        let evidence = self.generate_evidence(challenge.nonce, materials).await?;
+        let evidence = self.generate_evidence(challenge.nonce, materials, extra_credential).await?;
         debug!("get evidence with challenge: {evidence}");
 
+        log::info!("confilesystem3 - rcar_handshake(): tee_pubkey = {:?}", tee_pubkey);
         let attest_endpoint = format!("{}/{KBS_PREFIX}/attest", self.kbs_host_url);
         let attest = Attestation {
             tee_pubkey,
@@ -152,15 +157,18 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
             .send()
             .await?;
 
+        log::info!("confilesystem15 - KbsClient.rcar_handshake(): attest_response.status() = {:?}", attest_response.status());
         match attest_response.status() {
             reqwest::StatusCode::OK => {
                 let resp = attest_response.json::<AttestationResponseData>().await?;
+                //log::info!("confilesystem3 - rcar_handshake(): resp.token = {:?}", resp.token);
                 let token = Token::new(resp.token)?;
                 self.token = Some(token);
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let error_info = attest_response.json::<ErrorInformation>().await?;
-                bail!("KBS attest unauthorized, Error Info: {:?}", error_info);
+                log::info!("confilesystem15 - KbsClient.rcar_handshake(): error_info = {:?}", error_info);
+                bail!("confilesystem8 - KBS attest unauthorized, Error Info: {:?}", error_info);
             }
             _ => {
                 bail!(
@@ -173,7 +181,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         Ok(())
     }
 
-    async fn generate_evidence(&self, nonce: String, key_materials: Vec<&[u8]>) -> Result<String> {
+    async fn generate_evidence(&self, nonce: String, key_materials: Vec<&[u8]>, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<String> {
         let mut hasher = Sha384::new();
         hasher.update(nonce.as_bytes());
         key_materials
@@ -184,7 +192,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
 
         let tee_evidence = self
             .provider
-            .get_evidence(ehd)
+            .get_evidence(ehd, extra_credential)
             .await
             .context("Get TEE evidence failed")
             .map_err(|e| Error::GetEvidence(e.to_string()))?;
@@ -195,11 +203,13 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
 
 #[async_trait]
 impl KbsClientCapabilities for KbsClient<Box<dyn EvidenceProvider>> {
-    async fn get_resource(&mut self, resource_uri: ResourceUri) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, resource_uri: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         let remote_url = format!(
             "{}/{KBS_PREFIX}/resource/{}/{}/{}",
             self.kbs_host_url, resource_uri.repository, resource_uri.r#type, resource_uri.tag
         );
+
+        log::info!("confilesystem6 - KbsClientCapabilities.get_resource(): remote_url = {:?}", remote_url);
 
         for attempt in 1..=KBS_GET_RESOURCE_MAX_ATTEMPT {
             debug!("KBS client: trying to request KBS, attempt {attempt}");
@@ -211,6 +221,8 @@ impl KbsClientCapabilities for KbsClient<Box<dyn EvidenceProvider>> {
                 .await
                 .map_err(|e| Error::HttpError(format!("get failed: {e}")))?;
 
+            log::info!("confilesystem8 - KbsClientCapabilities.get_resource(): remote_url = {:?} -> res.status() = {:?}",
+                remote_url, res.status());
             match res.status() {
                 reqwest::StatusCode::OK => {
                     let response = res
@@ -221,16 +233,17 @@ impl KbsClientCapabilities for KbsClient<Box<dyn EvidenceProvider>> {
                         .tee_key
                         .decrypt_response(response)
                         .map_err(|e| Error::DecryptResponseFailed(e.to_string()))?;
+                    log::info!("confilesystem1 - KbsClient.get_resource(): payload_data = {:?}", payload_data);
                     return Ok(payload_data);
                 }
-                reqwest::StatusCode::UNAUTHORIZED => {
+                reqwest::StatusCode::UNAUTHORIZED => { // 401
                     warn!(
                         "Authenticating with KBS failed. Perform a new RCAR handshake: {:#?}",
                         res.json::<ErrorInformation>()
                             .await
                             .map_err(|e| Error::KbsResponseDeserializationFailed(e.to_string()))?,
                     );
-                    self.rcar_handshake()
+                    self.rcar_handshake(extra_credential)
                         .await
                         .map_err(|e| Error::RcarHandshake(e.to_string()))?;
 
@@ -329,7 +342,7 @@ mod test {
             .expect("resource uri");
 
         let resource = client
-            .get_resource(resource_uri)
+            .get_resource(resource_uri, &attester::extra_credential::ExtraCredential::default())
             .await
             .expect("get resource");
         assert_eq!(resource, CONTENT);

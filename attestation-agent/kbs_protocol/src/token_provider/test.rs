@@ -19,7 +19,7 @@ const HARDCODED: &str = "eyJhbGciOiJFUzI1NiIsImtpZCI6InNpbXBsZSIsInR5cCI6IkpXVCJ
 
 #[async_trait]
 impl TokenProvider for TestTokenProvider {
-    async fn get_token(&self) -> Result<(Token, TeeKeyPair)> {
+    async fn get_token(&self, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<(Token, TeeKeyPair)> {
         let token =
             Token::new(HARDCODED.to_string()).map_err(|e| Error::GetTokenFailed(e.to_string()))?;
         let key = TeeKeyPair::new().map_err(|e| Error::GenerateKeyPairFailed(e.to_string()))?;

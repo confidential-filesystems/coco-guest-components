@@ -25,6 +25,8 @@ mod server;
 const DEFAULT_UNIX_SOCKET_DIR: &str = "/run/confidential-containers";
 const DEFAULT_CDH_SOCKET_ADDR: &str = "unix:///run/confidential-containers/cdh.sock";
 
+const AA_ATTESTER: &str = "all";
+
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -35,6 +37,10 @@ struct Cli {
     /// `--socket unix:///tmp/cdh_keyprovider`
     #[arg(default_value_t = DEFAULT_CDH_SOCKET_ADDR.to_string(), short)]
     socket: String,
+
+    // aa_attester of attestation-agent
+    #[arg(default_value_t = AA_ATTESTER.to_string(), short, long = "aa_attester")]
+    aa_attester: String,
 }
 
 macro_rules! ttrpc_service {
@@ -48,6 +54,8 @@ macro_rules! ttrpc_service {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    //println!("cctata11 - Starting confidential-data-hub : cli.aa_attester = {:?}", cli.aa_attester);
 
     if !Path::new(DEFAULT_UNIX_SOCKET_DIR).exists() {
         fs::create_dir_all(DEFAULT_UNIX_SOCKET_DIR)

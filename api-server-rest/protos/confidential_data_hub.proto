@@ -2,8 +2,11 @@ syntax = "proto3";
 
 package api;
 
+import "attestation_agent.proto";
+
 message GetResourceRequest {
     string ResourcePath = 1;
+    attestation_agent.ExtraCredential ExtraCredential = 2;
 }
 
 message GetResourceResponse {

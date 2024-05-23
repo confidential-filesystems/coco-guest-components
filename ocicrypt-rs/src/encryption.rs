@@ -15,6 +15,12 @@ use crate::config::{DecryptConfig, EncryptConfig};
 use crate::keywrap::KeyWrapper;
 use crate::{get_key_wrapper, KEY_WRAPPERS_ANNOTATIONS};
 
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 lazy_static! {
     static ref DEFAULT_ANNOTATION_MAP: HashMap<String, String> = HashMap::new();
 }
@@ -105,7 +111,9 @@ fn pre_unwrap_key(
     keywrapper: &dyn KeyWrapper,
     dc: &DecryptConfig,
     b64_annotations: &str,
+    ie_data: &crate::token::InternalExtraData,
 ) -> Result<Vec<u8>> {
+    slog::info!(sl(), "confilesystem1 - encryption.pre_unwrap_key(): b64_annotations = {:?}", b64_annotations);
     if b64_annotations.is_empty() {
         return Err(anyhow!("annotations is empty!"));
     }
@@ -114,7 +122,8 @@ fn pre_unwrap_key(
     for b64_annotation in b64_annotations.split(',') {
         let annotation = base64::engine::general_purpose::STANDARD.decode(b64_annotation)?;
 
-        match keywrapper.unwrap_keys(dc, &annotation) {
+        slog::info!(sl(), "confilesystem1 - encryption.pre_unwrap_key(): annotation = {:?}", annotation);
+        match keywrapper.unwrap_keys(dc, &annotation, ie_data) {
             Err(e) => {
                 errs.push_str(&e.to_string());
                 continue;
@@ -153,6 +162,7 @@ fn get_layer_key_opts(
         .is_some()
     {
         annotations.iter().find_map(|(k, v)| {
+            slog::info!(sl(), "confilesystem1 - encryption.get_layer_key_opts(): k = {:?}, v = {:?}", k, v);
             // During decryption, ignore keyprovider name in annotations and use the
             // keyprovider defined in OCICRYPT_KEYPROVIDER_CONFIG.
             if k.strip_prefix("org.opencontainers.image.enc.keys.provider.")
@@ -173,13 +183,22 @@ fn get_layer_key_opts(
 pub fn decrypt_layer_key_opts_data(
     dc: &DecryptConfig,
     annotations: Option<&HashMap<String, String>>,
+    ie_data: &crate::token::InternalExtraData,
 ) -> Result<Vec<u8>> {
+    slog::info!(sl(), "confilesystem1 - encryption.decrypt_layer_key_opts_data(): DecryptConfig = {:?}", dc);
+    slog::info!(sl(), "confilesystem1 - encryption.decrypt_layer_key_opts_data(): 1 - annotations = {:?}", annotations);
+
     let mut priv_key_given = false;
     let annotations = annotations.unwrap_or(&DEFAULT_ANNOTATION_MAP);
+    slog::info!(sl(), "confilesystem1 - encryption.decrypt_layer_key_opts_data(): 2 - annotations = {:?}", annotations);
 
     for (annotations_id, scheme) in KEY_WRAPPERS_ANNOTATIONS.iter() {
+        slog::info!(sl(), "confilesystem1 - encryption.decrypt_layer_key_opts_data(): annotations_id = {:?}, scheme = {:?}",
+            annotations_id, scheme);
         if let Some(b64_annotation) = get_layer_key_opts(annotations_id, annotations) {
+            slog::info!(sl(), "confilesystem1 - encryption.decrypt_layer_key_opts_data(): b64_annotation = {:?}", b64_annotation);
             let keywrapper = get_key_wrapper(scheme)?;
+            slog::info!(sl(), "confilesystem1 - encryption.decrypt_layer_key_opts_data(): keywrapper.annotation_id() = {:?}", keywrapper.annotation_id());
             if !keywrapper.probe(&dc.param) {
                 continue;
             }
@@ -188,7 +207,7 @@ pub fn decrypt_layer_key_opts_data(
                 priv_key_given = true;
             }
 
-            if let Ok(opts_data) = pre_unwrap_key(keywrapper, dc, &b64_annotation) {
+            if let Ok(opts_data) = pre_unwrap_key(keywrapper, dc, &b64_annotation, ie_data) {
                 if !opts_data.is_empty() {
                     return Ok(opts_data);
                 }
@@ -197,8 +216,9 @@ pub fn decrypt_layer_key_opts_data(
         }
     }
 
+    slog::info!(sl(), "confilesystem8 - encryption.decrypt_layer_key_opts_data(): priv_key_given = {:?}", priv_key_given);
     if !priv_key_given {
-        return Err(anyhow!("missing private key needed for decryption"));
+        return Err(anyhow!("confilesystem8 - missing private key needed for decryption"));
     }
 
     Err(anyhow!(
@@ -212,6 +232,7 @@ pub fn encrypt_layer<'a, R: 'a + Read>(
     layer_reader: R,
     annotations: Option<&HashMap<String, String>>,
     digest: &str,
+    ie_data: &crate::token::InternalExtraData,
 ) -> Result<(
     Option<impl Read + EncryptionFinalizer + 'a>,
     EncLayerFinalizer,
@@ -221,7 +242,7 @@ pub fn encrypt_layer<'a, R: 'a + Read>(
         let anno = annotations.unwrap_or(&DEFAULT_ANNOTATION_MAP);
         if anno.contains_key(annotations_id) {
             if let Some(decrypt_config) = ec.decrypt_config.as_ref() {
-                decrypt_layer_key_opts_data(decrypt_config, annotations)?;
+                decrypt_layer_key_opts_data(decrypt_config, annotations, ie_data)?;
                 get_layer_pub_opts(anno)?;
 
                 // already encrypted!
@@ -256,8 +277,11 @@ pub fn decrypt_layer<R: Read>(
     layer_reader: R,
     annotations: Option<&HashMap<String, String>>,
     unwrap_only: bool,
+    ie_data: &crate::token::InternalExtraData,
 ) -> Result<(Option<impl Read>, String)> {
-    let priv_opts_data = decrypt_layer_key_opts_data(dc, annotations)?;
+    slog::info!(sl(), "confilesystem1 - encryption.decrypt_layer(): annotations = {:?}", annotations);
+
+    let priv_opts_data = decrypt_layer_key_opts_data(dc, annotations, ie_data)?;
     let annotations = annotations.unwrap_or(&DEFAULT_ANNOTATION_MAP);
     let pub_opts_data = get_layer_pub_opts(annotations)?;
 

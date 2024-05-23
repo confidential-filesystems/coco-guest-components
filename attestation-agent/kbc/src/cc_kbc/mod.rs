@@ -29,8 +29,9 @@ impl KbcInterface for Kbc {
         Err(anyhow!("Check API of this KBC is unimplemented."))
     }
 
-    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket) -> Result<Vec<u8>> {
-        let key_data = self.kbs_client.get_resource(annotation_packet.kid).await?;
+    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+        log::info!("confilesystem8 - cc_kbc.decrypt_payload(): annotation_packet.kid = {:?}", annotation_packet.kid);
+        let key_data = self.kbs_client.get_resource(annotation_packet.kid, extra_credential).await?;
         let key = Zeroizing::new(key_data);
 
         let wrap_type = WrapType::try_from(&annotation_packet.wrap_type[..])?;
@@ -42,8 +43,10 @@ impl KbcInterface for Kbc {
         )
     }
 
-    async fn get_resource(&mut self, desc: ResourceUri) -> Result<Vec<u8>> {
-        let data = self.kbs_client.get_resource(desc).await?;
+    async fn get_resource(&mut self, desc: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+        log::info!("confilesystem2 - cc_kbc.get_resource(): desc = {:?}", desc);
+
+        let data = self.kbs_client.get_resource(desc, extra_credential).await?;
 
         Ok(data)
     }
@@ -51,6 +54,7 @@ impl KbcInterface for Kbc {
 
 impl Kbc {
     pub fn new(kbs_uri: String) -> Result<Kbc> {
+        log::info!("confilesystem8 - cc_kbc.new(): kbs_uri = {:?}", kbs_uri);
         let kbs_client = KbsClientBuilder::with_evidence_provider(
             Box::new(NativeEvidenceProvider::new()?),
             &kbs_uri,

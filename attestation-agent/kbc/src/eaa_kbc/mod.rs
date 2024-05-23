@@ -50,7 +50,7 @@ impl KbcInterface for EAAKbc {
     /// This function will **ignore** the kbs address the kid carries,
     /// instead overwrite with the kbs_uri the [`Kbc`] carries.
     /// Related issue: <https://github.com/confidential-containers/attestation-agent/issues/130>
-    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket) -> Result<Vec<u8>> {
+    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         debug!("EAA KBC decrypt_payload() is called");
 
         if self.tcp_stream.is_none() {
@@ -71,7 +71,7 @@ impl KbcInterface for EAAKbc {
         Ok(decrypted_payload)
     }
 
-    async fn get_resource(&mut self, rid: ResourceUri) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, rid: ResourceUri, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         if self.tcp_stream.is_none() {
             debug!("First request, connecting KBS...");
             self.establish_new_kbs_connection()?;

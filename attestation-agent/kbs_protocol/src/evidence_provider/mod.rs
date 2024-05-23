@@ -16,7 +16,7 @@ use kbs_types::Tee;
 #[async_trait]
 pub trait EvidenceProvider: Send + Sync {
     /// Get evidence with as runtime data (report data, challege)
-    async fn get_evidence(&self, runtime_data: Vec<u8>) -> Result<String>;
+    async fn get_evidence(&self, runtime_data: Vec<u8>, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<String>;
 
     /// Get the underlying Tee type
     async fn get_tee_type(&self) -> Result<Tee>;

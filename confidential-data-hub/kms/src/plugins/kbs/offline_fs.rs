@@ -26,7 +26,7 @@ pub struct OfflineFsKbc {
 
 #[async_trait]
 impl Kbc for OfflineFsKbc {
-    async fn get_resource(&mut self, rid: ResourceUri) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, rid: ResourceUri, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         let resource_path = rid.resource_path();
         self.resources
             .get(&resource_path)

@@ -22,6 +22,9 @@ use crate::config::Paths;
 
 use super::image::Image;
 
+#[cfg(feature = "signature-cosign")]
+use sigstore::cosign::SignatureLayer;
+
 pub mod cosign;
 pub mod simple;
 
@@ -31,8 +34,8 @@ pub trait SignScheme: Send + Sync {
     /// Do initialization jobs for this scheme. This may include the following
     /// * preparing runtime directories for storing signatures, configurations, etc.
     /// * gathering necessary files.
-    async fn init(&mut self, config: &Paths) -> Result<()>;
+    async fn init(&mut self, config: &Paths, ie_data: &crate::extra::token::InternalExtraData) -> Result<()>;
 
     /// Judge whether an image is allowed by this SignScheme.
-    async fn allows_image(&self, image: &mut Image, auth: &RegistryAuth) -> Result<()>;
+    async fn allows_image(&self, image: &mut Image, auth: &RegistryAuth, signature_layers: Vec<SignatureLayer>, ie_data: &crate::extra::token::InternalExtraData) -> Result<()>;
 }

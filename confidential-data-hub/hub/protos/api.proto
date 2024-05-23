@@ -10,8 +10,17 @@ message UnsealSecretOutput {
     bytes plaintext = 1;
 }
 
+message ExtraCredential {
+    string ControllerCrpToken = 1;
+    string ControllerAttestationReport = 2;
+    string ControllerCertChain = 3;
+    string AAAttester = 4;
+    string ContainerName = 5;
+}
+
 message GetResourceRequest {
     string ResourcePath = 1;
+    ExtraCredential ExtraCredential = 2;
 }
 
 message GetResourceResponse {

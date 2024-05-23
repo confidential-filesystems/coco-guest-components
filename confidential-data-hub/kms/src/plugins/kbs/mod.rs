@@ -63,7 +63,7 @@ lazy_static! {
 
 #[async_trait]
 pub trait Kbc: Send + Sync {
-    async fn get_resource(&mut self, _rid: ResourceUri) -> Result<Vec<u8>>;
+    async fn get_resource(&mut self, _rid: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
 }
 
 /// A fake KbcClient to carry the [`Getter`] semantics. The real `new()`
@@ -77,7 +77,7 @@ pub struct KbcClient;
 
 #[async_trait]
 impl Getter for KbcClient {
-    async fn get_secret(&mut self, name: &str, _annotations: &Annotations) -> Result<Vec<u8>> {
+    async fn get_secret(&mut self, name: &str, _annotations: &Annotations, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         let resource_uri = ResourceUri::try_from(name)
             .map_err(|_| Error::KbsClientError(format!("illegal kbs resource uri: {name}")))?;
         let real_client = KBS_CLIENT.clone();
@@ -92,10 +92,10 @@ impl Getter for KbcClient {
 
         match client {
             #[cfg(feature = "kbs")]
-            RealClient::Cc(c) => c.get_resource(resource_uri).await,
+            RealClient::Cc(c) => c.get_resource(resource_uri, extra_credential).await,
             #[cfg(feature = "sev")]
-            RealClient::Sev(c) => c.get_resource(resource_uri).await,
-            RealClient::OfflineFs(c) => c.get_resource(resource_uri).await,
+            RealClient::Sev(c) => c.get_resource(resource_uri, extra_credential).await,
+            RealClient::OfflineFs(c) => c.get_resource(resource_uri, extra_credential).await,
         }
     }
 }

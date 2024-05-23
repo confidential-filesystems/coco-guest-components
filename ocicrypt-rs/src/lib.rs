@@ -10,11 +10,19 @@ use crate::keywrap::KeyWrapper;
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 pub mod config;
 pub mod helpers;
 pub mod keywrap;
 pub mod spec;
 pub mod utils;
+
+pub mod token;
 
 #[cfg(feature = "block-cipher")]
 pub mod blockcipher;
@@ -32,6 +40,7 @@ lazy_static! {
                 "jwe".to_string(),
                 Box::new(crate::keywrap::jwe::JweKeyWrapper {}) as Box<dyn KeyWrapper>,
             );
+            slog::info!(sl(), "confilesystem1 - ocicrypt-rs.keywrap-jwe: m = {:?}", m);
         }
 
         #[cfg(feature = "keywrap-keyprovider")]
@@ -39,8 +48,10 @@ lazy_static! {
             let ocicrypt_config =
                 crate::config::OcicryptConfig::from_env(crate::config::OCICRYPT_ENVVARNAME)
                     .expect("Unable to read ocicrypt config file");
+            slog::info!(sl(), "confilesystem1 - ocicrypt-rs.keywrap-keyprovider: crate::config::OCICRYPT_ENVVARNAME = {:?}", crate::config::OCICRYPT_ENVVARNAME);
             if let Some(ocicrypt_config) = ocicrypt_config {
                 let key_providers = ocicrypt_config.key_providers;
+                slog::info!(sl(), "confilesystem1 - ocicrypt-rs.keywrap-keyprovider: key_providers = {:?}", key_providers);
                 for (provider_name, attrs) in key_providers.iter() {
                     let key_wrapper =
                         Box::new(crate::keywrap::keyprovider::KeyProviderKeyWrapper::new(
@@ -50,6 +61,7 @@ lazy_static! {
                         )) as Box<dyn KeyWrapper>;
                     m.insert("provider.".to_owned() + provider_name, key_wrapper);
                 }
+                //slog::info!(sl(), "confilesystem1 - ocicrypt-rs.keywrap-keyprovider: m = {:?}", m);
             }
         }
 
@@ -60,6 +72,7 @@ lazy_static! {
         for (scheme, key_wrapper) in KEY_WRAPPERS.iter() {
             m.insert(key_wrapper.annotation_id().to_string(), scheme.clone());
         }
+        slog::info!(sl(), "confilesystem1 - ocicrypt-rs.KEY_WRAPPERS_ANNOTATIONS: m = {:?}", m);
         m
     };
 }

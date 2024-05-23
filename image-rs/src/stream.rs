@@ -14,7 +14,12 @@ use crate::digest::{DigestHasher, LayerDigestHasher, DIGEST_SHA256_PREFIX, DIGES
 use crate::unpack::unpack;
 use crate::ERR_BAD_UNCOMPRESSED_DIGEST;
 
-const CAPACITY: usize = 32768;
+const CAPACITY: usize = 65536;//65536;//32768;
+
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
 
 // Wrap a channel with [`Read`](std::io::Read) support.
 // This can bridge the [`AsyncRead`](tokio::io::AsyncRead) from
@@ -39,6 +44,8 @@ impl Read for ChannelRead {
         if self.current.position() == self.current.get_ref().len() as u64 {
             if let Ok(buffer) = self.rx.recv() {
                 self.current = Cursor::new(buffer);
+            } else {
+                slog::info!(sl(), "confilesystem17 - ChannelRead.read(): Err ?");
             }
 
             // When recv() finished or failed, the sender will close the channel
@@ -63,33 +70,47 @@ pub async fn stream_processing(
     } else if diff_id.starts_with(DIGEST_SHA512_PREFIX) {
         LayerDigestHasher::Sha512(sha2::Sha512::new())
     } else {
-        bail!("{}: {:?}", ERR_BAD_UNCOMPRESSED_DIGEST, diff_id);
+        bail!("confilesystem17 - {}: {:?}", ERR_BAD_UNCOMPRESSED_DIGEST, diff_id);
     };
 
-    channel_processing(layer_reader, hasher, dest)
+    channel_processing(layer_reader, hasher, dest, diff_id.to_string())
         .await
-        .map_err(|e| anyhow!("hasher {} {:?}", DIGEST_SHA256_PREFIX, e))
+        .map_err(|e| anyhow!("confilesystem17 - hasher {} {:?}", DIGEST_SHA256_PREFIX, e))
 }
 
 async fn channel_processing(
     mut layer_reader: (impl AsyncRead + Unpin),
     mut hasher: LayerDigestHasher,
     destination: PathBuf,
+    diff_id: String,
 ) -> Result<String> {
     let (tx, rx) = channel();
+    //let diff_id_tmp = diff_id.clone();
+    let destination_tmp = destination.clone();
     let unpack_thread = std::thread::spawn(move || {
         let mut input = ChannelRead::new(rx);
 
-        if let Err(e) = unpack(&mut input, destination.as_path()) {
+        //slog::info!(sl(), "confilesystem17 - channel_processing(): In unpack_thread() destination.as_path() = {:?}, diff_id = {:?}",
+        //        destination.as_path(), diff_id_tmp);
+        if let Err(e) = unpack(&mut input, destination_tmp.as_path()) {
             // TODO
-            fs::remove_dir_all(destination.as_path())
+            //slog::info!(sl(), "confilesystem17 - channel_processing(): Err unpack() destination.as_path() = {:?}, diff_id = {:?} -> e = {:?}",
+            //    destination.as_path(), diff_id_tmp, e);
+            fs::remove_dir_all(destination_tmp.as_path())
                 .context("Failed to roll back when unpacking")?;
             return Err(e);
         }
 
+        //slog::info!(sl(), "confilesystem17 - channel_processing(): Out unpack_thread() destination.as_path() = {:?}, diff_id = {:?}",
+        //    destination.as_path(), diff_id_tmp);
         Result::<()>::Ok(())
     });
 
+    //std::thread::sleep(std::time::Duration::from_secs(1));
+
+    let mut layer_data_num: u64 = 0;
+    let mut layer_data_total: u64 = 0;
+    let mut last_n = 0;
     loop {
         let mut buffer = vec![0u8; CAPACITY];
         let n = layer_reader
@@ -100,18 +121,26 @@ async fn channel_processing(
             break;
         }
 
+        layer_data_num = layer_data_num + 1;
+        layer_data_total = layer_data_total + (n as u64);
         buffer.resize(n, 0);
         hasher.digest_update(&buffer);
+        //slog::info!(sl(), "confilesystem17 - channel_processing(): CAPACITY = {:?}, n = {:?}, buffer.len() = {:?}",
+        //    CAPACITY, n, buffer.len());
         tx.send(buffer)
-            .map_err(|e| anyhow!("channel: send failed {:?}", e))?;
+            .map_err(|e| anyhow!("confilesystem17 - channel: send failed - destination.as_path() = {:?}, diff_id = {:?}, CAPACITY = {:?}, last_n = {:?}, n = {:?}, layer_data_num = {:?}, layer_data_total = {:?}, e = {:?}",
+                destination.as_path(), diff_id, CAPACITY, last_n, n, layer_data_num, layer_data_total, e))?;
+        last_n = n;
     }
+    slog::info!(sl(), "confilesystem17 - channel_processing(): OK - destination.as_path() = {:?}, diff_id = {:?}, CAPACITY = {:?}, last_n = {:?}, layer_data_num = {:?}, layer_data_total = {:?}",
+        destination.as_path(), diff_id, CAPACITY, last_n, layer_data_num, layer_data_total);
 
     // Close the channel to signal EOF.
     drop(tx);
 
     tokio::task::spawn_blocking(|| unpack_thread.join())
         .await?
-        .map_err(|e| anyhow!("channel: unpack thread failed {:?}", e))
+        .map_err(|e| anyhow!("confilesystem17 - channel: unpack thread failed {:?}", e))
         .unwrap()?;
 
     Ok(hasher.digest_finalize())

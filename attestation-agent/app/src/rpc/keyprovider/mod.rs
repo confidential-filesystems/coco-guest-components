@@ -58,6 +58,7 @@ pub mod grpc {
             &self,
             request: Request<KeyProviderKeyWrapProtocolInput>,
         ) -> Result<Response<KeyProviderKeyWrapProtocolOutput>, Status> {
+            info!("confilesystem1 - grpc.KeyProviderService.un_wrap_key(): ");
             debug!("The UnWrapKey API is called...");
 
             // Deserialize and parse the gRPC input to get KBC name, KBS URI and annotation.
@@ -122,6 +123,7 @@ pub mod grpc {
             &self,
             _request: Request<KeyProviderKeyWrapProtocolInput>,
         ) -> Result<Response<KeyProviderKeyWrapProtocolOutput>, Status> {
+            info!("confilesystem1 - grpc.KeyProviderService.wrap_key(): ");
             debug!("The WrapKey API is called...");
             debug!("WrapKey API is unimplemented!");
             Err(Status::unimplemented(format!(
@@ -163,15 +165,16 @@ pub mod ttrpc {
             req: keyprovider::KeyProviderKeyWrapProtocolInput,
         ) -> ::ttrpc::Result<keyprovider::KeyProviderKeyWrapProtocolOutput> {
             debug!("The UnWrapKey API is called...");
+            info!("confilesystem8 ttrpc AA- keyprovider_ttrpc.un_wrap_key(): ");
 
             // Deserialize and parse the gRPC input to get KBC name, KBS URI and annotation.
             let input_payload = InputPayload::try_from(req.KeyProviderKeyWrapProtocolInput)
                 .map_err(|e| {
-                    error!("Parse request failed: {}", e);
+                    error!("confilesystem8 - Parse request failed: {}", e);
                     let mut error_status = ::ttrpc::proto::Status::new();
                     error_status.set_code(Code::INTERNAL);
                     error_status.set_message(format!(
-                        "[ERROR:{}] Parse request failed: {}",
+                        "confilesystem8 - [ERROR:{}] Parse request failed: {}",
                         AGENT_NAME, e
                     ));
                     ::ttrpc::Error::RpcStatus(error_status)
@@ -187,9 +190,11 @@ pub mod ttrpc {
                     &input_payload.kbc_name,
                     &input_payload.kbs_uri,
                     &input_payload.annotation,
+                    &input_payload.extra_credential,
                 )
                 .await
                 .map_err(|e| {
+                    info!("confilesystem1 - keyprovider_ttrpc.un_wrap_key(): Call AA-KBC to provide key failed");
                     error!("Call AA-KBC to provide key failed: {}", e);
                     let mut error_status = ::ttrpc::proto::Status::new();
                     error_status.set_code(Code::INTERNAL);
@@ -200,6 +205,7 @@ pub mod ttrpc {
                     ::ttrpc::Error::RpcStatus(error_status)
                 })?;
 
+            info!("confilesystem1 - keyprovider_ttrpc.un_wrap_key(): Call AA-KBC to provide key succ");
             debug!("Provide key successfully, get the plain PLBCO");
 
             // Construct output structure and serialize it as the return value of gRPC
@@ -241,6 +247,7 @@ pub mod ttrpc {
             _ctx: &::ttrpc::r#async::TtrpcContext,
             _req: keyprovider::KeyProviderKeyWrapProtocolInput,
         ) -> ::ttrpc::Result<keyprovider::KeyProviderKeyWrapProtocolOutput> {
+            info!("confilesystem8 ttrpc AA- keyprovider_ttrpc.wrap_key(): ");
             debug!("The WrapKey API is called...");
             debug!("WrapKey API is unimplemented!");
             let mut error_status = ::ttrpc::proto::Status::new();
@@ -265,6 +272,7 @@ struct InputPayload {
     // Note: URI does *not* contain a scheme prefix.
     kbs_uri: String,
     annotation: String,
+    extra_credential: attester::extra_credential::ExtraCredential,
 }
 
 impl TryFrom<KeyProviderInput> for InputPayload {
@@ -284,10 +292,13 @@ impl TryFrom<KeyProviderInput> for InputPayload {
 
         let (kbc_name, kbs_uri) = get_kbc_kbs_pair(&kpi)?;
 
+        let extra_credential = get_extra_credential(&kpi)?;
+
         let payload = InputPayload {
             kbc_name,
             kbs_uri,
             annotation,
+            extra_credential,
         };
 
         Ok(payload)
@@ -312,6 +323,25 @@ fn get_annotation(kpi: &KeyProviderInput) -> Result<String> {
     }
 
     Ok(annotation.into())
+}
+
+fn get_extra_credential(kpi: &KeyProviderInput) -> Result<attester::extra_credential::ExtraCredential> {
+    let extra_credential_str = kpi
+        .keyunwrapparams
+        .extra_credential
+        .as_ref()
+        .ok_or_else(|| anyhow!("confilesystem7 - Service - no extra_credential"))?;
+
+    let extra_credential = attester::extra_credential::ExtraCredential::from_string(extra_credential_str)
+        .map_err(|e| anyhow!("{}: {:?}", "confilesystem7 - Service - fail to parse extra_credential", e))?;
+
+    info!("confilesystem6 - Service - get_extra_credential(): extra_credential.controller_crp_token.len() = {:?}, \
+        extra_credential.aa_attester = {:?}, extra_credential.container_name = {:?}",
+        extra_credential.controller_crp_token.len(),
+        extra_credential.aa_attester,
+        extra_credential.container_name);
+
+    Ok(extra_credential)
 }
 
 fn get_kbc_kbs_pair(kpi: &KeyProviderInput) -> Result<(String, String)> {

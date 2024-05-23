@@ -23,7 +23,7 @@ impl Hub {
 
 #[async_trait]
 impl DataHub for Hub {
-    async fn unseal_secret(&self, secret: Vec<u8>) -> Result<Vec<u8>> {
+    async fn unseal_secret(&self, secret: Vec<u8>, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         // TODO: verify the jws signature using the key specified by `kid`
         // in header. Here we directly get the JWS payload
         let payload = secret
@@ -43,7 +43,7 @@ impl DataHub for Hub {
         })?;
 
         let res = secret
-            .unseal()
+            .unseal(extra_credential)
             .await
             .map_err(|e| Error::UnsealSecret(format!("unseal failed: {e}")))?;
         Ok(res)
@@ -53,7 +53,7 @@ impl DataHub for Hub {
         todo!()
     }
 
-    async fn get_resource(&self, uri: String) -> Result<Vec<u8>> {
+    async fn get_resource(&self, uri: String, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         // to initialize a get_resource_provider client we do not need the ProviderSettings.
         let mut client = kms::new_getter("kbs", ProviderSettings::default())
             .await
@@ -61,7 +61,7 @@ impl DataHub for Hub {
 
         // to get resource using a get_resource_provider client we do not need the Annotations.
         let res = client
-            .get_secret(&uri, &Annotations::default())
+            .get_secret(&uri, &Annotations::default(), extra_credential)
             .await
             .map_err(|e| Error::GetResource(format!("get rersource failed: {e}")))?;
         Ok(res)

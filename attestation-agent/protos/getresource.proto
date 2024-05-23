@@ -6,6 +6,7 @@ message GetResourceRequest {
     string ResourcePath = 1;
     string KbcName = 2;
     string KbsUri = 3;
+    string ExtraCredential = 4;
 }
 
 message GetResourceResponse {

@@ -25,6 +25,7 @@ sev = { path = "../../attestation-agent/deps/sev", optional = true }
 thiserror.workspace = true
 tokio = { workspace = true, features = [ "rt-multi-thread", "macros" ] }
 ttrpc = { workspace = true, features = ["async"], optional = true }
+attester = { path = "../../attestation-agent/attester", default-features = false }
 
 [build-dependencies]
 ttrpc-codegen = { workspace = true, optional = true }

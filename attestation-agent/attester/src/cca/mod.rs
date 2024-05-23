@@ -40,7 +40,7 @@ nix::ioctl_readwrite!(cca_attestation_request, b'A', 1, cca_ioctl_request);
 
 #[async_trait::async_trait]
 impl Attester for CCAAttester {
-    async fn get_evidence(&self, mut challenge: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, mut challenge: Vec<u8>, _extra_credential: &crate::extra_credential::ExtraCredential) -> Result<String> {
         challenge.resize(64, 0);
         let token = attestation(challenge)?;
         let evidence = CcaEvidence { token };

@@ -17,7 +17,7 @@ struct Message {
     tee_keypair: String,
 }
 
-pub(crate) async fn get_kbs_token() -> Result<Vec<u8>> {
+pub(crate) async fn get_kbs_token(extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
     let evidence_provider = Box::new(NativeEvidenceProvider::new()?);
 
     // Check for /peerpod/daemon.json to see if we are in a peer pod
@@ -32,7 +32,7 @@ pub(crate) async fn get_kbs_token() -> Result<Vec<u8>> {
     let mut client =
         KbsClientBuilder::with_evidence_provider(evidence_provider, &kbs_host_url).build()?;
 
-    let (token, tee_keypair) = client.get_token().await?;
+    let (token, tee_keypair) = client.get_token(extra_credential).await?;
     let message = Message {
         token: token.content,
         tee_keypair: tee_keypair.to_pkcs1_pem()?.to_string(),

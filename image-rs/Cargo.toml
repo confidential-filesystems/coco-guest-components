@@ -9,6 +9,7 @@ authors = ["The image-rs Authors"]
 edition = "2021"
 
 [dependencies]
+# std = "1.76.0"
 anyhow.workspace = true
 async-compression = { version = "0.4.1", features = ["futures-io", "tokio", "gzip", "zstd"] }
 async-trait.workspace = true
@@ -24,6 +25,24 @@ futures-util = "0.3"
 hex = { workspace = true, optional = true }
 lazy_static = { workspace = true, optional = true }
 libc = "0.2"
+
+# Note: this crate sets the slog 'max_*' features which allows the log level
+# to be modified at runtime.
+logging = { path = "../../kata-containers/src/libs/logging" }
+slog = "2.5.2"
+slog-scope = "4.1.2"
+slog-term = "2.9.0"
+
+# Redirect ttrpc log calls
+slog-stdlog = "4.0.0"
+
+#jsonwebtoken = { version = "8", default-features = false, optional = true }
+jsonwebtoken = "8"
+jwt-simple = "0.11.6"
+#hex = "0.4.2"
+coarsetime = "0.1.23"
+#kbc = { path = "../attestation-agent/kbc", optional = true  }
+
 log = "0.4.14"
 loopdev = { git = "https://github.com/mdaffin/loopdev", rev = "c9f91e8f0326ce8a3364ac911e81eb32328a5f27"}
 nix = { version = "0.26", optional = true }

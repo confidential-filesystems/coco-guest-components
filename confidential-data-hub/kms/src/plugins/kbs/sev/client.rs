@@ -130,7 +130,7 @@ impl OnlineSevKbc {
 
 #[async_trait]
 impl Kbc for OnlineSevKbc {
-    async fn get_resource(&mut self, rid: ResourceUri) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, rid: ResourceUri, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         match &rid.r#type[..] {
             "client-id" => Ok(self.client_id.hyphenated().to_string().into_bytes()),
             _ => self.get_resource_from_kbs(rid, "resource").await,

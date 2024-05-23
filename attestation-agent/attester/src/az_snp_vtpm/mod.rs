@@ -29,7 +29,7 @@ struct Evidence {
 
 #[async_trait::async_trait]
 impl Attester for AzSnpVtpmAttester {
-    async fn get_evidence(&self, report_data: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, report_data: Vec<u8>, _extra_credential: &crate::extra_credential::ExtraCredential) -> Result<String> {
         let report = vtpm::get_report()?;
         let quote = vtpm::get_quote(&report_data)?;
         let certs = imds::get_certs()?;

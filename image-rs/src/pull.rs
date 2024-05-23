@@ -6,16 +6,23 @@ use anyhow::{anyhow, bail, Result};
 use futures_util::stream::{self, StreamExt, TryStreamExt};
 use oci_distribution::manifest::{OciDescriptor, OciImageManifest};
 use oci_distribution::{secrets::RegistryAuth, Client, Reference};
+//use oci_distribution::{secrets::RegistryAuth, Client, client::ClientConfig, client::ClientProtocol, Reference};
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+//use tonic::IntoRequest;
 
 use crate::decoder::Compression;
 use crate::decrypt::Decryptor;
 use crate::image::LayerMeta;
 use crate::meta_store::MetaStore;
 use crate::stream::stream_processing;
+
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
 
 const ERR_NO_DECRYPT_CFG: &str = "decrypt_config is None";
 
@@ -48,7 +55,14 @@ impl<'a> PullClient<'a> {
         max_concurrent_download: usize,
     ) -> Result<PullClient<'a>> {
         let client = Client::default();
-
+        /*
+        let insecure_registries = vec!["10.11.35.45".to_owned()];
+        let client = Client::new(ClientConfig {
+            //protocol: ClientProtocol::Http,
+            protocol: ClientProtocol::HttpsExcept(insecure_registries),
+            ..Default::default()
+            });
+        */
         Ok(PullClient {
             client,
             auth,
@@ -60,10 +74,18 @@ impl<'a> PullClient<'a> {
 
     /// pull_manifest pulls an image manifest and config data.
     pub async fn pull_manifest(&mut self) -> Result<(OciImageManifest, String, String)> {
+        slog::info!(sl(), "confilesystem12 - ImageClient.pull_manifest(): self.reference = {:?}, self.auth = {:?}",
+            self.reference, self.auth);
+        /*
+        let mut reference:Reference = self.reference.clone();
+        if reference.registry() == "10.11.35.45" {
+            reference = Reference::with_tag("10.11.35.45:5000".to_string(),
+                                            self.reference.repository().to_string(), Some(self.reference.tag()).to_string());
+        }*/
         self.client
             .pull_manifest_and_config(&self.reference, self.auth)
             .await
-            .map_err(|e| anyhow!("failed to pull manifest {}", e.to_string()))
+            .map_err(|e| anyhow!("confilesystem12 - failed to pull manifest {}", e.to_string()))
     }
 
     /// pull_bootstrap pulls a nydus image's bootstrap layer.
@@ -73,9 +95,12 @@ impl<'a> PullClient<'a> {
         diff_id: String,
         decrypt_config: &Option<&str>,
         meta_store: Arc<Mutex<MetaStore>>,
+        ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<LayerMeta> {
+        slog::info!(sl(), "confilesystem1 - ImageClient.pull_bootstrap(): decrypt_config = {:?}", decrypt_config);
+
         let layer_metas = self
-            .async_pull_layers(vec![bootstrap_desc], &[diff_id], decrypt_config, meta_store)
+            .async_pull_layers(vec![bootstrap_desc], &[diff_id], decrypt_config, meta_store, ie_data)
             .await?;
         match layer_metas.get(0) {
             Some(b) => Ok(b.clone()),
@@ -91,7 +116,10 @@ impl<'a> PullClient<'a> {
         diff_ids: &[String],
         decrypt_config: &Option<&str>,
         meta_store: Arc<Mutex<MetaStore>>,
+        ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<Vec<LayerMeta>> {
+        slog::info!(sl(), "confilesystem1 - ImageClient.async_pull_layers(): layer_descs = {:?}, decrypt_config = {:?}",
+            layer_descs,decrypt_config);
         let layer_metas = stream::iter(layer_descs)
             .enumerate()
             .map(|(i, layer)| {
@@ -99,27 +127,36 @@ impl<'a> PullClient<'a> {
                 let reference = &self.reference;
                 let ms = meta_store.clone();
 
+                //let timeout = coarsetime::Duration::from_mins(10);
+                //client.into_request().set_timeout(timeout);
+
                 async move {
+                    slog::info!(sl(), "confilesystem16 - ImageClient.async_pull_layers(): call client.async_pull_blob(): reference = {:?}, layer.digest = {:?}",
+                    reference, layer.digest);
                     let layer_reader = client
                         .async_pull_blob(reference, &layer.digest)
                         .await
                         .map_err(|e| anyhow!("failed to async pull blob {}", e.to_string()))?;
 
+                    slog::info!(sl(), "confilesystem12 - ImageClient.async_pull_layers(): call self.async_handle_layer(), decrypt_config = {:?}", decrypt_config);
                     self.async_handle_layer(
-                        layer,
+                        layer.clone(),
                         diff_ids[i].clone(),
                         decrypt_config,
                         layer_reader,
                         ms,
+                        ie_data,
                     )
                     .await
-                    .map_err(|e| anyhow!("failed to handle layer: {:?}", e))
+                    .map_err(|e| anyhow!("confilesystem16 - failed to handle layer: layer.urls = {:?}, layer.digest = {:?} -> err = {:?}",
+                        layer.urls, layer.digest, e))
                 }
             })
             .buffer_unordered(self.max_concurrent_download)
             .try_collect()
             .await?;
 
+        slog::info!(sl(), "confilesystem12 - ImageClient.async_pull_layers(): finished");
         Ok(layer_metas)
     }
 
@@ -130,9 +167,12 @@ impl<'a> PullClient<'a> {
         decrypt_config: &Option<&str>,
         layer_reader: (impl tokio::io::AsyncRead + Unpin + Send),
         ms: Arc<Mutex<MetaStore>>,
+        ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<LayerMeta> {
+        slog::info!(sl(), "confilesystem16 In- ImageClient.async_handle_layer(): decrypt_config = {:?}", decrypt_config);
         let layer_db = &ms.lock().await.layer_db;
         if let Some(layer_meta) = layer_db.get(&layer.digest) {
+            slog::info!(sl(), "confilesystem16 - async_handle_layer(): let Some(layer_meta) = layer_db.get(&layer.digest)");
             return Ok(layer_meta.clone());
         }
 
@@ -144,11 +184,20 @@ impl<'a> PullClient<'a> {
             ..Default::default()
         };
 
+        slog::warn!(sl(), "confilesystem1 - async_handle_layer(): layer.media_type = {:?}", layer.media_type);
         let decryptor = Decryptor::from_media_type(&layer.media_type);
+        slog::warn!(sl(), "confilesystem16 - async_handle_layer(): decryptor.is_encrypted() = {:?}, ie_data.is_workload_container = {:?}",
+            decryptor.is_encrypted(), ie_data.is_workload_container);
+        // confilesystem: workload image must be encrypted
+        if ie_data.is_workload_container && !decryptor.is_encrypted() {
+            return Err(anyhow!("confilesystem12 - ie_data.container_name = {:?} 's ie_data.is_workload_container = {:?}, BUT decryptor.is_encrypted() = {:?}",
+                ie_data.container_name, ie_data.is_workload_container, decryptor.is_encrypted()));
+        }
+
         if decryptor.is_encrypted() {
             if let Some(dc) = decrypt_config {
                 let decrypt_key = decryptor
-                    .get_decrypt_key(&layer, dc)
+                    .get_decrypt_key(&layer, dc, ie_data)
                     .map_err(|e| anyhow!("failed to get decrypt key {}", e.to_string()))?;
                 let plaintext_layer = decryptor
                     .async_get_plaintext_layer(layer_reader, &layer, &decrypt_key)
@@ -166,6 +215,7 @@ impl<'a> PullClient<'a> {
                 bail!(ERR_NO_DECRYPT_CFG);
             }
         } else {
+            slog::info!(sl(), "confilesystem16 - async_handle_layer(): -> async_decompress_unpack_layer()");
             layer_meta.uncompressed_digest = self
                 .async_decompress_unpack_layer(
                     layer_reader,
@@ -178,6 +228,8 @@ impl<'a> PullClient<'a> {
 
         // uncompressed digest should equal to the diff_ids in image_config.
         if layer_meta.uncompressed_digest != diff_id {
+            slog::warn!(sl(), "confilesystem16 - async_handle_layer(): layer_meta.uncompressed_digest = {:?} != diff_id = {:?}",
+                layer_meta.uncompressed_digest, diff_id);
             bail!(
                 "unequal uncompressed digest {:?} config diff_id {:?}",
                 layer_meta.uncompressed_digest,
@@ -196,6 +248,7 @@ impl<'a> PullClient<'a> {
         destination: &Path,
     ) -> Result<String> {
         let decoder = Compression::try_from(media_type)?;
+        slog::info!(sl(), "confilesystem16 - async_decompress_unpack_layer(): decoder = {:?}", decoder);
         let async_decoder = decoder.async_decompress(input_reader);
         stream_processing(async_decoder, diff_id, destination).await
     }
@@ -409,6 +462,7 @@ mod tests {
                     &d.decrypt_config,
                     d.layer_data.clone().as_slice(),
                     ms.clone(),
+                    None,
                 )
                 .await;
 

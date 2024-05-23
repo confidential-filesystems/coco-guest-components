@@ -9,6 +9,7 @@ mod attestation_agent;
 mod attestation_agent_ttrpc;
 
 use async_trait::async_trait;
+use protobuf::MessageField;
 use serde::Deserialize;
 use ttrpc::context;
 
@@ -46,9 +47,18 @@ impl AATokenProvider {
 
 #[async_trait]
 impl TokenProvider for AATokenProvider {
-    async fn get_token(&self) -> Result<(Token, TeeKeyPair)> {
+    async fn get_token(&self, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<(Token, TeeKeyPair)> {
+        let extra_credential = attestation_agent::ExtraCredential {
+            ControllerCrpToken: extra_credential.controller_crp_token.clone(),
+            ControllerAttestationReport: extra_credential.controller_attestation_report.clone(),
+            ControllerCertChain: extra_credential.controller_cert_chain.clone(),
+            AAAttester: extra_credential.aa_attester.clone(),
+            ContainerName: extra_credential.container_name.clone(),
+            ..Default::default()
+        };
         let req = GetTokenRequest {
             TokenType: TOKEN_TYPE.to_string(),
+            ExtraCredential: protobuf::MessageField::some(extra_credential),
             ..Default::default()
         };
         let bytes = self

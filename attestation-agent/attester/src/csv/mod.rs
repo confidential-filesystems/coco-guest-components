@@ -39,7 +39,7 @@ pub struct CsvAttester {}
 
 #[async_trait::async_trait]
 impl Attester for CsvAttester {
-    async fn get_evidence(&self, mut report_data: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, mut report_data: Vec<u8>, _extra_credential: &crate::extra_credential::ExtraCredential) -> Result<String> {
         if report_data.len() > 64 {
             bail!("CSV Attester: Report data must be no more than 64 bytes");
         }

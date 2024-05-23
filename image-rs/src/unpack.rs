@@ -19,11 +19,11 @@ pub fn unpack<R: io::Read>(input: R, destination: &Path) -> Result<()> {
 
     if destination.exists() {
         warn!(
-            "unpack destination {:?} already exists, will delete and rerwrite the layer",
+            "confilesystem17 - unpack destination {:?} already exists, will delete and rerwrite the layer",
             destination
         );
         fs::remove_dir_all(destination)
-            .context("Failed to delete existed broken layer when unpacking")?;
+            .context("confilesystem17 - Failed to delete existed broken layer when unpacking")?;
     }
 
     fs::create_dir_all(destination)?;
@@ -57,7 +57,7 @@ pub fn unpack<R: io::Read>(input: R, destination: &Path) -> Result<()> {
                 let ret = unsafe { libc::lutimes(path.as_ptr(), times.as_ptr()) };
                 if ret != 0 {
                     bail!(
-                        "change symlink file: {:?} utime error: {:?}",
+                        "confilesystem17 - change symlink file: {:?} utime error: {:?}",
                         path,
                         io::Error::last_os_error()
                     );
@@ -71,7 +71,7 @@ pub fn unpack<R: io::Read>(input: R, destination: &Path) -> Result<()> {
         let ret = unsafe { libc::utimes(k.as_ptr(), v.as_ptr()) };
         if ret != 0 {
             bail!(
-                "change directory: {:?} utime error: {:?}",
+                "confilesystem17 - change directory: {:?} utime error: {:?}",
                 k,
                 io::Error::last_os_error()
             );

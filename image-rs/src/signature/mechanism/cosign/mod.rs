@@ -5,16 +5,24 @@
 
 //! Cosign verification
 
+#[allow(unused_imports)]
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use oci_distribution::secrets::RegistryAuth;
 use serde::{Deserialize, Serialize};
 
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 #[cfg(feature = "signature-cosign")]
+#[allow(unused_imports)]
 use sigstore::{
     cosign::{
         verification_constraint::{PublicKeyVerifier, VerificationConstraintVec},
-        verify_constraints, ClientBuilder, CosignCapabilities,
+        verify_constraints, ClientBuilder, CosignCapabilities, SignatureLayer,
     },
     crypto::SigningScheme,
     errors::SigstoreVerifyConstraintsError,
@@ -59,7 +67,7 @@ impl SignScheme for CosignParameters {
     /// This initialization will:
     /// * Create [`COSIGN_KEY_DIR`] if not exist.
     #[cfg(feature = "signature-cosign")]
-    async fn init(&mut self, _config: &Paths) -> Result<()> {
+    async fn init(&mut self, _config: &Paths, _ie_data: &crate::extra::token::InternalExtraData) -> Result<()> {
         Ok(())
     }
 
@@ -70,12 +78,13 @@ impl SignScheme for CosignParameters {
 
     /// Judge whether an image is allowed by this SignScheme.
     #[cfg(feature = "signature-cosign")]
-    async fn allows_image(&self, image: &mut Image, auth: &RegistryAuth) -> Result<()> {
+    async fn allows_image(&self, image: &mut Image, auth: &RegistryAuth,
+                          signature_layers: Vec<SignatureLayer>, ie_data: &crate::extra::token::InternalExtraData) -> Result<()> {
         // Check before we access the network
         self.check_reference_rule_types()?;
 
         // Verification, will access the network
-        let payloads = self.verify_signature_and_get_payload(image, auth).await?;
+        let payloads = self.verify_signature_and_get_payload(image, auth, signature_layers, ie_data).await?;
 
         // check the reference rules (signed identity)
         for payload in payloads {
@@ -121,19 +130,26 @@ impl CosignParameters {
     /// * Download the signature image, gather the signatures and verify them
     /// using the pubkey.
     /// If succeeds, the payloads of the signature will be returned.
+    #[allow(unused_variables)]
     async fn verify_signature_and_get_payload(
         &self,
         image: &Image,
         auth: &RegistryAuth,
+        signature_layers: Vec<SignatureLayer>,
+        ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<Vec<SigPayload>> {
         // Get the pubkey
+        slog::info!(sl(), "confilesystem8 - CosignParameters.verify_signature_and_get_payload(): self.key_path = {:?}", self.key_path);
         let key = match (&self.key_data, &self.key_path) {
             (None, None) => bail!("Neither keyPath nor keyData is specified."),
-            (None, Some(key_path)) => resource::get_resource(key_path).await?,
+            (None, Some(key_path)) => resource::get_resource(key_path, ie_data).await?,
             (Some(key_data), None) => key_data.as_bytes().to_vec(),
             (Some(_), Some(_)) => bail!("Both keyPath and keyData are specified."),
         };
 
+        slog::info!(sl(), "confilesystem1 - CosignParameters.verify_signature_and_get_payload(): key = {:?}", key);
+
+        /*
         let image_ref = image.reference.whole();
 
         let auth = auth.clone();
@@ -163,6 +179,7 @@ impl CosignParameters {
         .await
         .context("tokio spawn")?
         .context("get signature layers")?;
+        */
 
         // By default, the hashing algorithm is SHA256
         let pub_key_verifier =
@@ -273,6 +290,8 @@ mod tests {
             .verify_signature_and_get_payload(
                 &image,
                 &oci_distribution::secrets::RegistryAuth::Anonymous,
+                vec![],
+                &None,
             )
             .await;
         assert!(
@@ -419,6 +438,8 @@ mod tests {
                 .allows_image(
                     &mut image,
                     &oci_distribution::secrets::RegistryAuth::Anonymous,
+                    vec![],
+                    &None,
                 )
                 .await;
             assert_eq!(

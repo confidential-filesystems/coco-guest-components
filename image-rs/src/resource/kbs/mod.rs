@@ -25,6 +25,12 @@ use tokio::fs;
 
 use super::Protocol;
 
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 #[cfg(feature = "keywrap-grpc")]
 mod grpc;
 
@@ -59,6 +65,7 @@ trait Client: Send + Sync {
         kbc_name: &str,
         resource_path: &str,
         kbs_uri: &str,
+        ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<Vec<u8>>;
 }
 
@@ -67,6 +74,7 @@ impl SecureChannel {
     /// * `aa_kbc_params`: s string with format `<kbc_name>::<kbs_uri>`.
     pub async fn new(aa_kbc_params: &str) -> Result<Self> {
         // unzip here is unstable
+        slog::info!(sl(), "confilesystem2 - SecureChannel.new(): aa_kbc_params = {:?}", aa_kbc_params);
         if let Some((kbc_name, kbs_uri)) = aa_kbc_params.split_once("::") {
             if kbc_name.is_empty() {
                 bail!("aa_kbc_params: missing KBC name");
@@ -142,7 +150,8 @@ impl Protocol for SecureChannel {
     ///
     /// Please refer to https://github.com/confidential-containers/guest-components/blob/main/image-rs/docs/ccv1_image_security_design.md#get-resource-service
     /// for more information.
-    async fn get_resource(&mut self, resource_uri: &str) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, resource_uri: &str, ie_data: &crate::extra::token::InternalExtraData) -> Result<Vec<u8>> {
+        slog::info!(sl(), "confilesystem6 - SecureChannel.get_resource(): resource_uri = {:?}", resource_uri);
         if let Some(res) = self.check_local(resource_uri).await? {
             return Ok(res);
         }
@@ -161,7 +170,7 @@ impl Protocol for SecureChannel {
 
         let res = self
             .client
-            .get_resource(&self.kbc_name, &resource_path, &self.kbs_uri)
+            .get_resource(&self.kbc_name, &resource_path, &self.kbs_uri, ie_data)
             .await?;
 
         let path = self.get_filepath(resource_uri);

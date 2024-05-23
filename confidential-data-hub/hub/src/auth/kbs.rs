@@ -69,7 +69,7 @@ impl Hub {
             })?;
 
             let contents = kbs_client
-                .get_secret(s[0], &Annotations::default())
+                .get_secret(s[0], &Annotations::default(), &attester::extra_credential::ExtraCredential::default())
                 .await
                 .map_err(|e| {
                     Error::InitializationFailed(format!("kbs client get resource failed: {e}"))

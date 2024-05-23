@@ -7,6 +7,12 @@ use anyhow::Result;
 
 use crate::config::{DecryptConfig, EncryptConfig};
 
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 #[cfg(feature = "keywrap-jwe")]
 pub mod jwe;
 #[cfg(feature = "keywrap-keyprovider")]
@@ -20,7 +26,7 @@ pub trait KeyWrapper: Send + Sync {
     fn wrap_keys(&self, ec: &EncryptConfig, opts_data: &[u8]) -> Result<Vec<u8>>;
 
     /// unwrap keys data with decrypt config.
-    fn unwrap_keys(&self, dc: &DecryptConfig, annotation: &[u8]) -> Result<Vec<u8>>;
+    fn unwrap_keys(&self, dc: &DecryptConfig, annotation: &[u8], ie_data: &crate::token::InternalExtraData) -> Result<Vec<u8>>;
 
     /// return the keywraper annotation id.
     fn annotation_id(&self) -> String;
@@ -53,12 +59,14 @@ pub trait KeyWrapper: Send + Sync {
 impl<W: KeyWrapper + ?Sized> KeyWrapper for Box<W> {
     #[inline]
     fn wrap_keys(&self, ec: &EncryptConfig, opts_data: &[u8]) -> Result<Vec<u8>> {
+        slog::warn!(sl(), "confilesystem1 - KeyWrapper.wrap_keys(): ec = {:?}", ec);
         (**self).wrap_keys(ec, opts_data)
     }
 
     #[inline]
-    fn unwrap_keys(&self, dc: &DecryptConfig, annotation: &[u8]) -> Result<Vec<u8>> {
-        (**self).unwrap_keys(dc, annotation)
+    fn unwrap_keys(&self, dc: &DecryptConfig, annotation: &[u8], ie_data: &crate::token::InternalExtraData) -> Result<Vec<u8>> {
+        slog::warn!(sl(), "confilesystem1 - KeyWrapper.unwrap_keys(): dc = {:?}, annotation = {:?}", dc, annotation);
+        (**self).unwrap_keys(dc, annotation, ie_data)
     }
 
     #[inline]
@@ -68,6 +76,7 @@ impl<W: KeyWrapper + ?Sized> KeyWrapper for Box<W> {
 
     #[inline]
     fn probe(&self, dc_param: &HashMap<String, Vec<Vec<u8>>>) -> bool {
+        slog::warn!(sl(), "confilesystem1 - KeyWrapper.probe(): dc_param = {:?}", dc_param);
         (**self).probe(dc_param)
     }
 
@@ -78,6 +87,7 @@ impl<W: KeyWrapper + ?Sized> KeyWrapper for Box<W> {
 
     #[inline]
     fn keyids_from_packet(&self, packet: String) -> Option<Vec<u64>> {
+        slog::warn!(sl(), "confilesystem1 - KeyWrapper.keyids_from_packet(): packet = {:?}", packet);
         (**self).keyids_from_packet(packet)
     }
 

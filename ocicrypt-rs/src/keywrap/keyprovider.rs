@@ -12,6 +12,15 @@ use crate::config::{DecryptConfig, EncryptConfig, KeyProviderAttrs};
 use crate::keywrap::KeyWrapper;
 use crate::utils::{self, CommandExecuter};
 
+//use images_rs::extra;
+//use extra;
+
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 #[cfg(feature = "keywrap-keyprovider-native")]
 use attestation_agent::{AttestationAPIs, AttestationAgent};
 
@@ -47,6 +56,7 @@ struct KeyWrapParams {
 struct KeyUnwrapParams {
     dc: Option<DecryptConfig>,
     annotation: Option<String>,
+    extra_credential: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -87,6 +97,7 @@ struct KeyProviderKeyWrapProtocolOutput {
 impl KeyProviderKeyWrapProtocolOutput {
     #[cfg(feature = "keywrap-keyprovider-grpc")]
     async fn from_grpc(input: Vec<u8>, conn: &str, operation: OpKey) -> Result<Self> {
+        slog::warn!(sl(), "confilesystem1 - KeyProviderKeyWrapProtocolOutput.from_grpc(): operation = {:?}", operation);
         let uri = conn.parse::<tonic::codegen::http::Uri>().unwrap();
         // create a channel ie connection to server
         let channel = tonic::transport::Channel::builder(uri)
@@ -135,6 +146,8 @@ impl KeyProviderKeyWrapProtocolOutput {
 
     #[cfg(feature = "keywrap-keyprovider-ttrpc")]
     async fn from_ttrpc(input: Vec<u8>, conn: &str, operation: OpKey) -> Result<Self> {
+        slog::warn!(sl(), "confilesystem1 - KeyProviderKeyWrapProtocolOutput.from_ttrpc(): operation = {:?}", operation);
+
         let c = ttrpc::r#async::Client::connect(conn)?;
 
         let kc = crate::utils::ttrpc::keyprovider_ttrpc::KeyProviderServiceClient::new(c);
@@ -191,6 +204,8 @@ impl KeyProviderKeyWrapProtocolOutput {
 
     #[cfg(feature = "keywrap-keyprovider-native")]
     fn from_native(annotation: &str, dc_config: &DecryptConfig) -> Result<Self> {
+        slog::warn!(sl(), "confilesystem1 - from_native(): annotation = {:?}, dc_config = {:?}", annotation, dc_config);
+
         let kbc_kbs_pair = if let Some(list) = dc_config.param.get("attestation-agent") {
             list.get(0)
                 .ok_or_else(|| anyhow!("keyprovider: empty kbc::kbs pair"))?
@@ -426,6 +441,7 @@ impl KeyProviderKeyWrapper {
         &self,
         _input: Vec<u8>,
         ttrpc: &str,
+        _ie_data: &crate::token::InternalExtraData,
     ) -> Result<KeyProviderKeyWrapProtocolOutput> {
         #[cfg(not(feature = "keywrap-keyprovider-ttrpc"))]
         return Err(anyhow!(
@@ -435,6 +451,7 @@ impl KeyProviderKeyWrapper {
         #[cfg(feature = "keywrap-keyprovider-ttrpc")]
         {
             let ttrpc = ttrpc.to_string();
+            slog::warn!(sl(), "confilesystem1 - unwrap_key_ttrpc(): ttrpc = {:?}", ttrpc);
             let handler = std::thread::spawn(move || {
                 create_async_runtime()?.block_on(async {
                     KeyProviderKeyWrapProtocolOutput::from_ttrpc(_input, &ttrpc, OpKey::Unwrap)
@@ -480,6 +497,7 @@ impl KeyWrapper for KeyProviderKeyWrapper {
     /// key for recipients and gets encrypted optsData, which describe the symmetric key used for
     /// encrypting the layer.
     fn wrap_keys(&self, enc_config: &EncryptConfig, opts_data: &[u8]) -> Result<Vec<u8>> {
+        slog::warn!(sl(), "confilesystem1 - KeyWrapper.wrap_keys(): enc_config = {:?}", enc_config);
         if !enc_config.param.contains_key(&self.provider) {
             return Err(anyhow!(
                 "keyprovider: unknown provider {} for operation {}",
@@ -522,12 +540,41 @@ impl KeyWrapper for KeyProviderKeyWrapper {
     /// UnwrapKey calls appropriate binary-executable or grpc/ttrpc server for unwrapping the
     /// session key based on the protocol given in annotation for recipients and gets decrypted
     /// optsData, which describe the symmetric key used for decrypting the layer
-    fn unwrap_keys(&self, dc_config: &DecryptConfig, json_string: &[u8]) -> Result<Vec<u8>> {
+    fn unwrap_keys(&self, dc_config: &DecryptConfig, json_string: &[u8], ie_data: &crate::token::InternalExtraData) -> Result<Vec<u8>> {
+        slog::warn!(sl(), "confilesystem7 - KeyWrapper.unwrap_keys(): dc_config = {:?}", dc_config);
         let annotation_str = String::from_utf8(json_string.to_vec())
             .map_err(|_| anyhow!("keyprovider: can not convert json data to string"))?;
+
+        // confilesystem : check res-id & addr
+        //use kbc;
+        //let annotation: kbc::annotation_packet::AnnotationPacket = serde_json::from_str(&annotation_str.clone())?;
+        let annotation: crate::token::AnnotationPacket = serde_json::from_str(&annotation_str.clone())?;
+        let key_id = annotation.kid.resource_path();
+        slog::warn!(sl(), "confilesystem8 - KeyWrapper.unwrap_keys(): annotation = {:?} -> key_id = {:?}",
+            annotation, key_id);
+        let image_encrypt_addr = crate::token::get_addr_from_res_id(&key_id)
+            .expect("fail to get addr from res id");
+        if !ie_data.addr_is_ok(&image_encrypt_addr) {
+            bail!("confilesystem8 - unwrap_keys(): image_encrypt_addr = {:?} -> addr_is_ok() = false", image_encrypt_addr)
+        }
+        let can_get = ie_data.can_get_res(&key_id);
+        if !can_get {
+            slog::info!(sl(), "confilesystem8 - unwrap_keys(): can not get resource: key_id = {:?} because of ie_data.authorized_res = {:?}",
+                key_id, ie_data.authorized_res);
+            return Err(anyhow!("confilesystem8 - fail to get resource: {:?}", key_id));
+        }
+
+        let extra_credential = crate::token::ExtraCredential::new(
+            ie_data.controller_crp_token.clone(),
+            ie_data.controller_attestation_report.clone(),
+            ie_data.controller_cert_chain.clone(),
+            ie_data.aa_attester.clone(),
+            ie_data.container_name.clone()).to_string().expect("confilesystem7 - fail to get extra credential");
+
         let key_unwrap_params = KeyUnwrapParams {
             dc: Some(dc_config.clone()),
             annotation: Some(base64::engine::general_purpose::STANDARD.encode(annotation_str)),
+            extra_credential: Some(extra_credential),
         };
         let input = KeyProviderKeyWrapProtocolInput {
             op: OpKey::Unwrap.to_string(),
@@ -546,7 +593,7 @@ impl KeyWrapper for KeyProviderKeyWrapper {
         } else if let Some(grpc) = self.attrs.grpc.as_ref() {
             self.unwrap_key_grpc(_serialized_input, grpc)?
         } else if let Some(ttrpc) = self.attrs.ttrpc.as_ref() {
-            self.unwrap_key_ttrpc(_serialized_input, ttrpc)?
+            self.unwrap_key_ttrpc(_serialized_input, ttrpc, ie_data)?
         } else if let Some(_native) = self.attrs.native.as_ref() {
             self.unwrap_key_native(dc_config, json_string)?
         } else {
@@ -668,6 +715,7 @@ mod tests {
                 &self,
                 request: Request<grpc_input>,
             ) -> core::result::Result<tonic::Response<grpc_output>, tonic::Status> {
+                slog::warn!(sl(), "confilesystem1 - KeyProviderService.wrap_key(): ");
                 let key_wrap_input: super::super::KeyProviderKeyWrapProtocolInput =
                     serde_json::from_slice(
                         &request.into_inner().key_provider_key_wrap_protocol_input,
@@ -706,6 +754,7 @@ mod tests {
                 &self,
                 request: Request<grpc_input>,
             ) -> core::result::Result<tonic::Response<grpc_output>, tonic::Status> {
+                slog::warn!(sl(), "confilesystem1 - KeyProviderService.un_wrap_key(): ");
                 let key_wrap_input: super::super::KeyProviderKeyWrapProtocolInput =
                     serde_json::from_slice(
                         &request.into_inner().key_provider_key_wrap_protocol_input,
@@ -781,6 +830,7 @@ mod tests {
                 _ctx: &::ttrpc::r#async::TtrpcContext,
                 req: ttrpc_input,
             ) -> ::ttrpc::Result<ttrpc_output> {
+                slog::warn!(sl(), "confilesystem1 - ttrpc_test.wrap_key(): ");
                 let key_wrap_input: super::super::KeyProviderKeyWrapProtocolInput =
                     serde_json::from_slice(&req.KeyProviderKeyWrapProtocolInput).unwrap();
                 let plain_optsdata = key_wrap_input.key_wrap_params.opts_data.unwrap();
@@ -818,6 +868,7 @@ mod tests {
                 _ctx: &::ttrpc::r#async::TtrpcContext,
                 req: ttrpc_input,
             ) -> ::ttrpc::Result<ttrpc_output> {
+                slog::warn!(sl(), "confilesystem1 - ttrpc_test.un_wrap_key(): ");
                 let key_wrap_input: super::super::KeyProviderKeyWrapProtocolInput =
                     serde_json::from_slice(&req.KeyProviderKeyWrapProtocolInput).unwrap();
 

@@ -32,18 +32,23 @@ pub mod grpc {
             &self,
             request: Request<GetResourceRequest>,
         ) -> Result<Response<GetResourceResponse>, Status> {
+            //info!("confilesystem6 - grpc.get_resource(): request = {:?}", request);
+
             let request = request.into_inner();
+
+            let extra_credential = attester::extra_credential::ExtraCredential::default();
 
             let attestation_agent_mutex_clone = Arc::clone(&ASYNC_ATTESTATION_AGENT);
             let mut attestation_agent = attestation_agent_mutex_clone.lock().await;
 
-            debug!("Call AA-KBC to download resource ...");
+            debug!("confilesystem6 - get_resource(): Call AA-KBC to download resource ...");
 
             let target_resource = attestation_agent
                 .download_confidential_resource(
                     &request.kbc_name,
                     &request.resource_path,
                     &request.kbs_uri,
+                    &extra_credential,
                 )
                 .await
                 .map_err(|e| {
@@ -96,13 +101,22 @@ pub mod ttrpc {
             _ctx: &::ttrpc::r#async::TtrpcContext,
             req: getresource::GetResourceRequest,
         ) -> ::ttrpc::Result<getresource::GetResourceResponse> {
-            debug!("Call AA-KBC to download resource ...");
+            debug!("confilesystem2 - AA.get_resource(): Call AA-KBC to download resource ...");
+            info!("confilesystem6 - AA-Service - ttrpc.get_resource(): req.ExtraCredential.len() = {:?}",
+                req.ExtraCredential.len());
+            let extra_credential = attester::extra_credential::ExtraCredential::from_string(&req.ExtraCredential)
+                .expect("confilesystem7 - fail to from_string ExtraCredential");
+            info!("confilesystem6 - AA-Service - ttrpc.get_resource(): extra_credential.controller_crp_token.len() = {:?}, \
+                extra_credential.aa_attester = {:?}, extra_credential.container_name = {:?}",
+                extra_credential.controller_crp_token.len(),
+                extra_credential.aa_attester,
+                extra_credential.container_name);
 
             let attestation_agent_mutex_clone = ASYNC_ATTESTATION_AGENT.clone();
             let mut attestation_agent = attestation_agent_mutex_clone.lock().await;
 
             let target_resource = attestation_agent
-                .download_confidential_resource(&req.KbcName, &req.ResourcePath, &req.KbsUri)
+                .download_confidential_resource(&req.KbcName, &req.ResourcePath, &req.KbsUri, &extra_credential)
                 .await
                 .map_err(|e| {
                     error!("Call AA-KBC to get resource failed: {}", e);

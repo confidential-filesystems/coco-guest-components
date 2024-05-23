@@ -1,3 +1,9 @@
+//use log::{info};
+// Convenience function to obtain the scope logger.
+//fn sl() -> slog::Logger {
+//    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+//}
+
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct KeyProviderKeyWrapProtocolInput {
@@ -86,6 +92,8 @@ pub mod key_provider_service_client {
             tonic::Response<super::KeyProviderKeyWrapProtocolOutput>,
             tonic::Status,
         > {
+            //slog::info!(sl(), "confilesystem1 - KeyProviderServiceClient.wrap_key(): ");
+            log::info!("confilesystem1 - KeyProviderServiceClient.wrap_key(): ");
             self.inner
                 .ready()
                 .await
@@ -108,6 +116,8 @@ pub mod key_provider_service_client {
             tonic::Response<super::KeyProviderKeyWrapProtocolOutput>,
             tonic::Status,
         > {
+            //slog::info!(sl(), "confilesystem1 GRPC - KeyProviderServiceClient.un_wrap_key(): ");
+            log::info!("confilesystem1 GRPC - KeyProviderServiceClient.un_wrap_key(): ");
             self.inner
                 .ready()
                 .await
@@ -204,6 +214,9 @@ pub mod key_provider_service_server {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
+            //slog::info!(sl(), "confilesystem1 - KeyProviderServiceServer.call(): ");
+            log::info!("confilesystem1 - KeyProviderServiceServer.call(): ");
+
             let inner = self.inner.clone();
             match req.uri().path() {
                 "/keyprovider.KeyProviderService/WrapKey" => {

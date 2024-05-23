@@ -22,6 +22,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use async_trait::async_trait;
 
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 #[derive(Clone)]
 pub struct KeyProviderServiceClient {
     client: ::ttrpc::r#async::Client,
@@ -35,11 +40,14 @@ impl KeyProviderServiceClient {
     }
 
     pub async fn wrap_key(&self, ctx: ttrpc::context::Context, req: &super::keyprovider::KeyProviderKeyWrapProtocolInput) -> ::ttrpc::Result<super::keyprovider::KeyProviderKeyWrapProtocolOutput> {
+        slog::info!(sl(), "confilesystem1 - KeyProviderServiceClient.wrap_key()");
         let mut cres = super::keyprovider::KeyProviderKeyWrapProtocolOutput::new();
         ::ttrpc::async_client_request!(self, ctx, req, "keyprovider.KeyProviderService", "WrapKey", cres);
     }
 
     pub async fn un_wrap_key(&self, ctx: ttrpc::context::Context, req: &super::keyprovider::KeyProviderKeyWrapProtocolInput) -> ::ttrpc::Result<super::keyprovider::KeyProviderKeyWrapProtocolOutput> {
+        slog::info!(sl(), "confilesystem8 TTRPC - KeyProviderServiceClient.un_wrap_key()");
+        log::info!("confilesystem8 TTRPC - KeyProviderServiceClient.un_wrap_key()");
         let mut cres = super::keyprovider::KeyProviderKeyWrapProtocolOutput::new();
         ::ttrpc::async_client_request!(self, ctx, req, "keyprovider.KeyProviderService", "UnWrapKey", cres);
     }

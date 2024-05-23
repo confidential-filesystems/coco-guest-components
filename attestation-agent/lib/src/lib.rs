@@ -7,6 +7,7 @@
 #[macro_use]
 extern crate strum;
 
+use std::borrow::Borrow;
 use anyhow::{anyhow, bail, Result};
 use async_trait::async_trait;
 use attester::{detect_tee_type, BoxedAttester};
@@ -60,6 +61,7 @@ pub trait AttestationAPIs {
         kbc_name: &str,
         kbs_uri: &str,
         annotation: &str,
+        extra_credential: &attester::extra_credential::ExtraCredential,
     ) -> Result<Vec<u8>>;
 
     /// Request KBS to obtain confidential resources, including confidential data or files.
@@ -72,13 +74,14 @@ pub trait AttestationAPIs {
         kbc_name: &str,
         resource_path: &str,
         kbs_uri: &str,
+        extra_credential: &attester::extra_credential::ExtraCredential,
     ) -> Result<Vec<u8>>;
 
     /// Get attestation Token
-    async fn get_token(&mut self, token_type: &str) -> Result<Vec<u8>>;
+    async fn get_token(&mut self, token_type: &str, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
 
     /// Get TEE hardware signed evidence that includes the runtime data.
-    async fn get_evidence(&mut self, runtime_data: &[u8]) -> Result<Vec<u8>>;
+    async fn get_evidence(&mut self, runtime_data: &[u8], extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
 }
 
 /// Attestation agent to provide attestation service.
@@ -134,7 +137,11 @@ impl AttestationAPIs for AttestationAgent {
         kbc_name: &str,
         kbs_uri: &str,
         annotation: &str,
+        extra_credential: &attester::extra_credential::ExtraCredential,
     ) -> Result<Vec<u8>> {
+        log::info!("confilesystem1 - decrypt_image_layer_annotation(): kbc_name = {:?}", kbc_name);
+        log::info!("confilesystem8 - decrypt_image_layer_annotation(): kbs_uri = {:?}", kbs_uri);
+        log::info!("confilesystem1 - decrypt_image_layer_annotation(): annotation = {:?}", annotation);
         if !self.kbc_instance_map.contains_key(kbc_name) {
             self.instantiate_kbc(kbc_name, kbs_uri)?;
         }
@@ -144,7 +151,7 @@ impl AttestationAPIs for AttestationAgent {
         self.kbc_instance_map
             .get_mut(kbc_name)
             .ok_or_else(|| anyhow!("The KBC instance does not existing!"))?
-            .decrypt_payload(annotation)
+            .decrypt_payload(annotation, extra_credential)
             .await
     }
 
@@ -153,25 +160,28 @@ impl AttestationAPIs for AttestationAgent {
         kbc_name: &str,
         resource_path: &str,
         kbs_uri: &str,
+        extra_credential: &attester::extra_credential::ExtraCredential,
     ) -> Result<Vec<u8>> {
         let resource_uri = ResourceUri::new(kbs_uri, resource_path)?;
 
+        log::info!("confilesystem1 - download_confidential_resource(): resource_uri = {:?}", resource_uri);
+
         if !self.kbc_instance_map.contains_key(kbc_name) {
-            self.instantiate_kbc(kbc_name, kbs_uri)?;
+            self.instantiate_kbc(kbc_name, kbs_uri)?; // only instantiate_kbc once !!!
         }
 
         self.kbc_instance_map
             .get_mut(kbc_name)
             .ok_or_else(|| anyhow!("The KBC instance does not existing!"))?
-            .get_resource(resource_uri)
+            .get_resource(resource_uri, extra_credential)
             .await
     }
 
-    async fn get_token(&mut self, _token_type: &str) -> Result<Vec<u8>> {
+    async fn get_token(&mut self, _token_type: &str, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         #[cfg(feature = "cc_kbc")]
         {
             let token = match _token_type {
-                "kbs" => get_kbs_token().await?,
+                "kbs" => get_kbs_token(extra_credential).await?,
                 typ => bail!("Unsupported token type {typ}"),
             };
 
@@ -187,10 +197,13 @@ impl AttestationAPIs for AttestationAgent {
     }
 
     /// Get TEE hardware signed evidence that includes the runtime data.
-    async fn get_evidence(&mut self, runtime_data: &[u8]) -> Result<Vec<u8>> {
+    async fn get_evidence(&mut self, runtime_data: &[u8], extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+        log::info!("confilesystem10 - AttestationAgent.get_evidence(): runtime_data = {:?}", runtime_data);
         let tee_type = detect_tee_type().ok_or(anyhow!("no supported tee type found!"))?;
-        let attester = TryInto::<BoxedAttester>::try_into(tee_type)?;
-        let evidence = attester.get_evidence(runtime_data.to_vec()).await?;
+        let attester = TryInto::<BoxedAttester>::try_into(tee_type.clone())?;
+        log::info!("confilesystem10 - AttestationAgent.get_evidence(): - 1: tee_type = {:?}", tee_type);
+        let evidence = attester.get_evidence(runtime_data.to_vec(), extra_credential).await?;
+        log::info!("confilesystem10 - AttestationAgent.get_evidence(): - 2");
         Ok(evidence.into_bytes())
     }
 }

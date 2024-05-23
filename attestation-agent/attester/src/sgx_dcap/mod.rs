@@ -47,7 +47,7 @@ pub struct SgxDcapAttester {}
 
 #[async_trait::async_trait]
 impl Attester for SgxDcapAttester {
-    async fn get_evidence(&self, mut report_data: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, mut report_data: Vec<u8>, _extra_credential: &crate::extra_credential::ExtraCredential) -> Result<String> {
         if report_data.len() > 64 {
             bail!("SGX Attester: Report data should be SHA384 base64 String");
         }

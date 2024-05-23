@@ -62,7 +62,7 @@ impl KbcInterface for SampleKbc {
         })
     }
 
-    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket) -> Result<Vec<u8>> {
+    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         let key = Zeroizing::new(HARDCODED_KEY.to_vec());
         let engine = base64::engine::general_purpose::STANDARD;
         let plain_text = decrypt(
@@ -75,7 +75,7 @@ impl KbcInterface for SampleKbc {
         Ok(plain_text)
     }
 
-    async fn get_resource(&mut self, rid: ResourceUri) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, rid: ResourceUri, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         let typ = ResourceType::try_from(&rid.r#type[..])?;
         match typ {
             ResourceType::Policy => Ok(std::include_str!("policy.json").as_bytes().to_vec()),

@@ -14,6 +14,12 @@ use anyhow::*;
 use async_trait::async_trait;
 use tokio::fs;
 
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 #[cfg(feature = "getresource")]
 pub mod kbs;
 
@@ -31,7 +37,7 @@ lazy_static::lazy_static! {
 /// - `get_resource()`: get resource from the uri
 #[async_trait]
 trait Protocol: Send + Sync {
-    async fn get_resource(&mut self, uri: &str) -> Result<Vec<u8>>;
+    async fn get_resource(&mut self, uri: &str, ie_data: &crate::extra::token::InternalExtraData) -> Result<Vec<u8>>;
 }
 
 /// This is a public API to retrieve resources. The input parameter `uri` should be
@@ -39,7 +45,15 @@ trait Protocol: Send + Sync {
 /// The resource will be retrieved in different ways due to different schemes.
 /// If no scheme is given, it will by default use `file://` to look for the file
 /// in the local filesystem.
-pub async fn get_resource(uri: &str) -> Result<Vec<u8>> {
+pub async fn get_resource(uri: &str, ie_data: &crate::extra::token::InternalExtraData) -> Result<Vec<u8>> {
+    let can_get = ie_data.can_get_res(uri);
+    slog::info!(sl(), "confilesystem8 - get_resource({:?}): can_get = {:?}", uri, can_get);
+    if !can_get {
+        slog::info!(sl(), "confilesystem8 - get_resource(): can not get resource: uri = {:?} because of ie_data.authorized_res = {:?}",
+            uri, ie_data.authorized_res);
+        return Err(anyhow!("confilesystem8 - fail to get resource: {:?}", uri));
+    }
+
     let uri = if uri.contains("://") {
         uri.to_string()
     } else {
@@ -56,7 +70,7 @@ pub async fn get_resource(uri: &str) -> Result<Vec<u8>> {
                     .await
                     .as_mut()
                     .ok_or_else(|| anyhow!("Uninitialized secure channel"))?
-                    .get_resource(&uri)
+                    .get_resource(&uri, ie_data)
                     .await
             }
 

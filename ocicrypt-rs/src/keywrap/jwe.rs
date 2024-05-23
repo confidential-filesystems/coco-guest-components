@@ -102,7 +102,7 @@ impl KeyWrapper for JweKeyWrapper {
         Ok(json.as_bytes().to_vec())
     }
 
-    fn unwrap_keys(&self, dc: &DecryptConfig, jwe_string: &[u8]) -> Result<Vec<u8>> {
+    fn unwrap_keys(&self, dc: &DecryptConfig, jwe_string: &[u8], _ie_data: &crate::token::InternalExtraData) -> Result<Vec<u8>> {
         let data = std::str::from_utf8(jwe_string)
             .map_err(|_e| anyhow!("jwe: invalid data to unwrap_keys()"))?;
         let privkeys = self

@@ -29,7 +29,7 @@ pub struct Secret {
 pub const VERSION: &str = "0.1.0";
 
 impl Secret {
-    pub async fn unseal(&self) -> Result<Vec<u8>> {
+    pub async fn unseal(&self, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         if self.version != VERSION {
             return Err(Error::UnsealEnvelopeFailed(format!(
                 "Unsupported secret version {}. Only support {VERSION} now.",
@@ -39,7 +39,7 @@ impl Secret {
 
         match &self.r#type {
             SecretContent::Envelope(env) => env.unseal().await,
-            SecretContent::Vault(v) => v.unseal().await,
+            SecretContent::Vault(v) => v.unseal(extra_credential).await,
         }
     }
 }

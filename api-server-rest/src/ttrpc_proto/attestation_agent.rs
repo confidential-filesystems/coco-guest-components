@@ -26,11 +26,207 @@
 const _PROTOBUF_VERSION_CHECK: () = ::protobuf::VERSION_3_2_0;
 
 #[derive(PartialEq,Clone,Default,Debug)]
+// @@protoc_insertion_point(message:attestation_agent.ExtraCredential)
+pub struct ExtraCredential {
+    // message fields
+    // @@protoc_insertion_point(field:attestation_agent.ExtraCredential.ControllerCrpToken)
+    pub ControllerCrpToken: ::std::string::String,
+    // @@protoc_insertion_point(field:attestation_agent.ExtraCredential.ControllerAttestationReport)
+    pub ControllerAttestationReport: ::std::string::String,
+    // @@protoc_insertion_point(field:attestation_agent.ExtraCredential.ControllerCertChain)
+    pub ControllerCertChain: ::std::string::String,
+    // @@protoc_insertion_point(field:attestation_agent.ExtraCredential.AAAttester)
+    pub AAAttester: ::std::string::String,
+    // @@protoc_insertion_point(field:attestation_agent.ExtraCredential.ContainerName)
+    pub ContainerName: ::std::string::String,
+    // special fields
+    // @@protoc_insertion_point(special_field:attestation_agent.ExtraCredential.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a ExtraCredential {
+    fn default() -> &'a ExtraCredential {
+        <ExtraCredential as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl ExtraCredential {
+    pub fn new() -> ExtraCredential {
+        ::std::default::Default::default()
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(5);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "ControllerCrpToken",
+            |m: &ExtraCredential| { &m.ControllerCrpToken },
+            |m: &mut ExtraCredential| { &mut m.ControllerCrpToken },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "ControllerAttestationReport",
+            |m: &ExtraCredential| { &m.ControllerAttestationReport },
+            |m: &mut ExtraCredential| { &mut m.ControllerAttestationReport },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "ControllerCertChain",
+            |m: &ExtraCredential| { &m.ControllerCertChain },
+            |m: &mut ExtraCredential| { &mut m.ControllerCertChain },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "AAAttester",
+            |m: &ExtraCredential| { &m.AAAttester },
+            |m: &mut ExtraCredential| { &mut m.AAAttester },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "ContainerName",
+            |m: &ExtraCredential| { &m.ContainerName },
+            |m: &mut ExtraCredential| { &mut m.ContainerName },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<ExtraCredential>(
+            "ExtraCredential",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for ExtraCredential {
+    const NAME: &'static str = "ExtraCredential";
+
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                10 => {
+                    self.ControllerCrpToken = is.read_string()?;
+                },
+                18 => {
+                    self.ControllerAttestationReport = is.read_string()?;
+                },
+                26 => {
+                    self.ControllerCertChain = is.read_string()?;
+                },
+                34 => {
+                    self.AAAttester = is.read_string()?;
+                },
+                42 => {
+                    self.ContainerName = is.read_string()?;
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if !self.ControllerCrpToken.is_empty() {
+            my_size += ::protobuf::rt::string_size(1, &self.ControllerCrpToken);
+        }
+        if !self.ControllerAttestationReport.is_empty() {
+            my_size += ::protobuf::rt::string_size(2, &self.ControllerAttestationReport);
+        }
+        if !self.ControllerCertChain.is_empty() {
+            my_size += ::protobuf::rt::string_size(3, &self.ControllerCertChain);
+        }
+        if !self.AAAttester.is_empty() {
+            my_size += ::protobuf::rt::string_size(4, &self.AAAttester);
+        }
+        if !self.ContainerName.is_empty() {
+            my_size += ::protobuf::rt::string_size(5, &self.ContainerName);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if !self.ControllerCrpToken.is_empty() {
+            os.write_string(1, &self.ControllerCrpToken)?;
+        }
+        if !self.ControllerAttestationReport.is_empty() {
+            os.write_string(2, &self.ControllerAttestationReport)?;
+        }
+        if !self.ControllerCertChain.is_empty() {
+            os.write_string(3, &self.ControllerCertChain)?;
+        }
+        if !self.AAAttester.is_empty() {
+            os.write_string(4, &self.AAAttester)?;
+        }
+        if !self.ContainerName.is_empty() {
+            os.write_string(5, &self.ContainerName)?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> ExtraCredential {
+        ExtraCredential::new()
+    }
+
+    fn clear(&mut self) {
+        self.ControllerCrpToken.clear();
+        self.ControllerAttestationReport.clear();
+        self.ControllerCertChain.clear();
+        self.AAAttester.clear();
+        self.ContainerName.clear();
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static ExtraCredential {
+        static instance: ExtraCredential = ExtraCredential {
+            ControllerCrpToken: ::std::string::String::new(),
+            ControllerAttestationReport: ::std::string::String::new(),
+            ControllerCertChain: ::std::string::String::new(),
+            AAAttester: ::std::string::String::new(),
+            ContainerName: ::std::string::String::new(),
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for ExtraCredential {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("ExtraCredential").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for ExtraCredential {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for ExtraCredential {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
+#[derive(PartialEq,Clone,Default,Debug)]
 // @@protoc_insertion_point(message:attestation_agent.GetEvidenceRequest)
 pub struct GetEvidenceRequest {
     // message fields
     // @@protoc_insertion_point(field:attestation_agent.GetEvidenceRequest.RuntimeData)
     pub RuntimeData: ::std::vec::Vec<u8>,
+    // @@protoc_insertion_point(field:attestation_agent.GetEvidenceRequest.ExtraCredential)
+    pub ExtraCredential: ::protobuf::MessageField<ExtraCredential>,
     // special fields
     // @@protoc_insertion_point(special_field:attestation_agent.GetEvidenceRequest.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -48,12 +244,17 @@ impl GetEvidenceRequest {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(1);
+        let mut fields = ::std::vec::Vec::with_capacity(2);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
             "RuntimeData",
             |m: &GetEvidenceRequest| { &m.RuntimeData },
             |m: &mut GetEvidenceRequest| { &mut m.RuntimeData },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, ExtraCredential>(
+            "ExtraCredential",
+            |m: &GetEvidenceRequest| { &m.ExtraCredential },
+            |m: &mut GetEvidenceRequest| { &mut m.ExtraCredential },
         ));
         ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<GetEvidenceRequest>(
             "GetEvidenceRequest",
@@ -76,6 +277,9 @@ impl ::protobuf::Message for GetEvidenceRequest {
                 10 => {
                     self.RuntimeData = is.read_bytes()?;
                 },
+                18 => {
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.ExtraCredential)?;
+                },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
                 },
@@ -91,6 +295,10 @@ impl ::protobuf::Message for GetEvidenceRequest {
         if !self.RuntimeData.is_empty() {
             my_size += ::protobuf::rt::bytes_size(1, &self.RuntimeData);
         }
+        if let Some(v) = self.ExtraCredential.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
         my_size
@@ -99,6 +307,9 @@ impl ::protobuf::Message for GetEvidenceRequest {
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
         if !self.RuntimeData.is_empty() {
             os.write_bytes(1, &self.RuntimeData)?;
+        }
+        if let Some(v) = self.ExtraCredential.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -118,12 +329,14 @@ impl ::protobuf::Message for GetEvidenceRequest {
 
     fn clear(&mut self) {
         self.RuntimeData.clear();
+        self.ExtraCredential.clear();
         self.special_fields.clear();
     }
 
     fn default_instance() -> &'static GetEvidenceRequest {
         static instance: GetEvidenceRequest = GetEvidenceRequest {
             RuntimeData: ::std::vec::Vec::new(),
+            ExtraCredential: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -275,6 +488,8 @@ pub struct GetTokenRequest {
     // message fields
     // @@protoc_insertion_point(field:attestation_agent.GetTokenRequest.TokenType)
     pub TokenType: ::std::string::String,
+    // @@protoc_insertion_point(field:attestation_agent.GetTokenRequest.ExtraCredential)
+    pub ExtraCredential: ::protobuf::MessageField<ExtraCredential>,
     // special fields
     // @@protoc_insertion_point(special_field:attestation_agent.GetTokenRequest.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -292,12 +507,17 @@ impl GetTokenRequest {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(1);
+        let mut fields = ::std::vec::Vec::with_capacity(2);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
             "TokenType",
             |m: &GetTokenRequest| { &m.TokenType },
             |m: &mut GetTokenRequest| { &mut m.TokenType },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, ExtraCredential>(
+            "ExtraCredential",
+            |m: &GetTokenRequest| { &m.ExtraCredential },
+            |m: &mut GetTokenRequest| { &mut m.ExtraCredential },
         ));
         ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<GetTokenRequest>(
             "GetTokenRequest",
@@ -320,6 +540,9 @@ impl ::protobuf::Message for GetTokenRequest {
                 10 => {
                     self.TokenType = is.read_string()?;
                 },
+                18 => {
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.ExtraCredential)?;
+                },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
                 },
@@ -335,6 +558,10 @@ impl ::protobuf::Message for GetTokenRequest {
         if !self.TokenType.is_empty() {
             my_size += ::protobuf::rt::string_size(1, &self.TokenType);
         }
+        if let Some(v) = self.ExtraCredential.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
         my_size
@@ -343,6 +570,9 @@ impl ::protobuf::Message for GetTokenRequest {
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
         if !self.TokenType.is_empty() {
             os.write_string(1, &self.TokenType)?;
+        }
+        if let Some(v) = self.ExtraCredential.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -362,12 +592,14 @@ impl ::protobuf::Message for GetTokenRequest {
 
     fn clear(&mut self) {
         self.TokenType.clear();
+        self.ExtraCredential.clear();
         self.special_fields.clear();
     }
 
     fn default_instance() -> &'static GetTokenRequest {
         static instance: GetTokenRequest = GetTokenRequest {
             TokenType: ::std::string::String::new(),
+            ExtraCredential: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -514,15 +746,24 @@ impl ::protobuf::reflect::ProtobufValue for GetTokenResponse {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x17attestation_agent.proto\x12\x11attestation_agent\"6\n\x12GetEviden\
-    ceRequest\x12\x20\n\x0bRuntimeData\x18\x01\x20\x01(\x0cR\x0bRuntimeData\
-    \"1\n\x13GetEvidenceResponse\x12\x1a\n\x08Evidence\x18\x01\x20\x01(\x0cR\
-    \x08Evidence\"/\n\x0fGetTokenRequest\x12\x1c\n\tTokenType\x18\x01\x20\
-    \x01(\tR\tTokenType\"(\n\x10GetTokenResponse\x12\x14\n\x05Token\x18\x01\
-    \x20\x01(\x0cR\x05Token2\xcc\x01\n\x17AttestationAgentService\x12\\\n\
-    \x0bGetEvidence\x12%.attestation_agent.GetEvidenceRequest\x1a&.attestati\
-    on_agent.GetEvidenceResponse\x12S\n\x08GetToken\x12\".attestation_agent.\
-    GetTokenRequest\x1a#.attestation_agent.GetTokenResponseb\x06proto3\
+    \n\x17attestation_agent.proto\x12\x11attestation_agent\"\xfb\x01\n\x0fEx\
+    traCredential\x12.\n\x12ControllerCrpToken\x18\x01\x20\x01(\tR\x12Contro\
+    llerCrpToken\x12@\n\x1bControllerAttestationReport\x18\x02\x20\x01(\tR\
+    \x1bControllerAttestationReport\x120\n\x13ControllerCertChain\x18\x03\
+    \x20\x01(\tR\x13ControllerCertChain\x12\x1e\n\nAAAttester\x18\x04\x20\
+    \x01(\tR\nAAAttester\x12$\n\rContainerName\x18\x05\x20\x01(\tR\rContaine\
+    rName\"\x84\x01\n\x12GetEvidenceRequest\x12\x20\n\x0bRuntimeData\x18\x01\
+    \x20\x01(\x0cR\x0bRuntimeData\x12L\n\x0fExtraCredential\x18\x02\x20\x01(\
+    \x0b2\".attestation_agent.ExtraCredentialR\x0fExtraCredential\"1\n\x13Ge\
+    tEvidenceResponse\x12\x1a\n\x08Evidence\x18\x01\x20\x01(\x0cR\x08Evidenc\
+    e\"}\n\x0fGetTokenRequest\x12\x1c\n\tTokenType\x18\x01\x20\x01(\tR\tToke\
+    nType\x12L\n\x0fExtraCredential\x18\x02\x20\x01(\x0b2\".attestation_agen\
+    t.ExtraCredentialR\x0fExtraCredential\"(\n\x10GetTokenResponse\x12\x14\n\
+    \x05Token\x18\x01\x20\x01(\x0cR\x05Token2\xcc\x01\n\x17AttestationAgentS\
+    ervice\x12\\\n\x0bGetEvidence\x12%.attestation_agent.GetEvidenceRequest\
+    \x1a&.attestation_agent.GetEvidenceResponse\x12S\n\x08GetToken\x12\".att\
+    estation_agent.GetTokenRequest\x1a#.attestation_agent.GetTokenResponseb\
+    \x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -540,7 +781,8 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     file_descriptor.get(|| {
         let generated_file_descriptor = generated_file_descriptor_lazy.get(|| {
             let mut deps = ::std::vec::Vec::with_capacity(0);
-            let mut messages = ::std::vec::Vec::with_capacity(4);
+            let mut messages = ::std::vec::Vec::with_capacity(5);
+            messages.push(ExtraCredential::generated_message_descriptor_data());
             messages.push(GetEvidenceRequest::generated_message_descriptor_data());
             messages.push(GetEvidenceResponse::generated_message_descriptor_data());
             messages.push(GetTokenRequest::generated_message_descriptor_data());

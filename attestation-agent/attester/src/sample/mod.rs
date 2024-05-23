@@ -20,6 +20,7 @@ pub fn detect_platform() -> bool {
 struct SampleQuote {
     svn: String,
     report_data: String,
+    custom: String,
 }
 
 #[derive(Debug, Default)]
@@ -27,12 +28,15 @@ pub struct SampleAttester {}
 
 #[async_trait::async_trait]
 impl Attester for SampleAttester {
-    async fn get_evidence(&self, report_data: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, report_data: Vec<u8>, _extra_credential: &crate::extra_credential::ExtraCredential) -> Result<String> {
+        log::info!("confilesystem4 - SampleAttester.get_evidence(): report_data = {:?}", report_data);
         let evidence = SampleQuote {
             svn: "1".to_string(),
             report_data: base64::engine::general_purpose::STANDARD.encode(report_data),
+            custom: "confilesystem-Sample".to_string(),
         };
 
+        log::info!("confilesystem4 - SampleAttester.get_evidence(): evidence.report_data = {:?}", evidence.report_data);
         serde_json::to_string(&evidence).map_err(|_| anyhow!("Serialize sample evidence failed"))
     }
 }

@@ -49,7 +49,7 @@ impl KbcInterface for OnlineSevKbc {
         })
     }
 
-    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket) -> Result<Vec<u8>> {
+    async fn decrypt_payload(&mut self, annotation_packet: AnnotationPacket, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         let key = self.get_key_from_kbs(annotation_packet.kid).await?;
         let wrap_type = WrapType::try_from(&annotation_packet.wrap_type[..])?;
         let plain_payload = crypto::decrypt(
@@ -62,7 +62,7 @@ impl KbcInterface for OnlineSevKbc {
         Ok(plain_payload)
     }
 
-    async fn get_resource(&mut self, rid: ResourceUri) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, rid: ResourceUri, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         match &rid.r#type[..] {
             "client-id" => {
                 let connection = self

@@ -5,7 +5,7 @@
 
 use async_trait::async_trait;
 use kbs_types::{ErrorInformation, Response};
-use log::{debug, warn};
+use log::{debug, info, warn};
 use resource_uri::ResourceUri;
 
 use crate::{
@@ -16,10 +16,10 @@ use crate::{
 };
 
 impl KbsClient<Box<dyn TokenProvider>> {
-    async fn update_token(&mut self) -> Result<()> {
+    async fn update_token(&mut self, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<()> {
         let (token, teekey) = self
             .provider
-            .get_token()
+            .get_token(extra_credential)
             .await
             .map_err(|e| Error::GetTokenFailed(e.to_string()))?;
         self.token = Some(token);
@@ -30,15 +30,17 @@ impl KbsClient<Box<dyn TokenProvider>> {
 
 #[async_trait]
 impl KbsClientCapabilities for KbsClient<Box<dyn TokenProvider>> {
-    async fn get_resource(&mut self, resource_uri: ResourceUri) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, resource_uri: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         let remote_url = format!(
             "{}/{KBS_PREFIX}/resource/{}/{}/{}",
             self.kbs_host_url, resource_uri.repository, resource_uri.r#type, resource_uri.tag
         );
+        info!("confilesystem10 - KbsClient::get_resource(): remote_url = {:?}, extra_credential = {:?}",
+                 remote_url, extra_credential);
         for attempt in 1..=KBS_GET_RESOURCE_MAX_ATTEMPT {
             debug!("KBS client: trying to request KBS, attempt {attempt}");
             if self.token.is_none() {
-                self.update_token().await?;
+                self.update_token(extra_credential).await?;
             }
 
             let token = self.token.as_ref().expect("token must have been got");
@@ -51,6 +53,7 @@ impl KbsClientCapabilities for KbsClient<Box<dyn TokenProvider>> {
                 .await
                 .map_err(|e| Error::HttpError(format!("get failed: {e}")))?;
 
+            info!("confilesystem10 - KbsClient::get_resource(): res.status() = {:?}", res.status());
             match res.status() {
                 reqwest::StatusCode::OK => {
                     let response = res
@@ -68,7 +71,7 @@ impl KbsClientCapabilities for KbsClient<Box<dyn TokenProvider>> {
                         "Authenticating with KBS failed. Get a new token from the token provider: {:#?}",
                         res.json::<ErrorInformation>().await.map_err(|e| Error::KbsResponseDeserializationFailed(e.to_string()))?
                     );
-                    self.update_token().await?;
+                    self.update_token(extra_credential).await?;
 
                     continue;
                 }

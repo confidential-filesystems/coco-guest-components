@@ -44,6 +44,7 @@ impl Client for Grpc {
         kbc_name: &str,
         resource_path: &str,
         kbs_uri: &str,
+        _ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<Vec<u8>> {
         let req = tonic::Request::new(GetResourceRequest {
             kbc_name: kbc_name.to_string(),

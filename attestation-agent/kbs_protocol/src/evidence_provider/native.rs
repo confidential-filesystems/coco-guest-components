@@ -15,6 +15,7 @@ pub struct NativeEvidenceProvider(BoxedAttester);
 
 impl NativeEvidenceProvider {
     pub fn new() -> Result<Self> {
+        //log::info!("confilesystem8 - NativeEvidenceProvider.new(): ");
         let tee = detect_tee_type()
             .ok_or_else(|| Error::GetTeeTypeFailed("no supported Tee type detected.".into()))?
             .try_into()
@@ -27,9 +28,10 @@ impl NativeEvidenceProvider {
 
 #[async_trait]
 impl EvidenceProvider for NativeEvidenceProvider {
-    async fn get_evidence(&self, runtime_data: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, runtime_data: Vec<u8>, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<String> {
+        log::info!("confilesystem8 - NativeEvidenceProvider.get_evidence(): runtime_data = {:?}", runtime_data);
         self.0
-            .get_evidence(runtime_data)
+            .get_evidence(runtime_data, extra_credential)
             .await
             .map_err(|e| Error::GetEvidence(e.to_string()))
     }

@@ -15,7 +15,7 @@ pub struct MockedEvidenceProvider {}
 
 #[async_trait]
 impl EvidenceProvider for MockedEvidenceProvider {
-    async fn get_evidence(&self, _runtime_data: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, _runtime_data: Vec<u8>, _extra_credential: &attester::extra_credential::ExtraCredential) -> Result<String> {
         Ok("test evidence".into())
     }
 

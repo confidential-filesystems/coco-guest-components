@@ -11,6 +11,11 @@ use anyhow::*;
 use oci_distribution::{secrets::RegistryAuth, Reference};
 use serde::{Deserialize, Serialize};
 
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 /// Hard-coded ResourceDescription of `auth.json`.
 pub const RESOURCE_DESCRIPTION: &str = "Credential";
 
@@ -31,8 +36,12 @@ pub struct DockerAuthConfig {
 pub async fn credential_for_reference(
     reference: &Reference,
     auth_file_path: &str,
+    ie_data: &crate::extra::token::InternalExtraData,
 ) -> Result<RegistryAuth> {
-    let auth = crate::resource::get_resource(auth_file_path).await?;
+    slog::info!(sl(), "confilesystem8 - credential_for_reference(): auth_file_path = {:?}", auth_file_path);
+
+    let auth = crate::resource::get_resource(auth_file_path, ie_data).await?;
+    slog::info!(sl(), "confilesystem8 - credential_for_reference(): auth = {:?}", auth);
 
     let config: DockerConfigFile = serde_json::from_slice(&auth)?;
 

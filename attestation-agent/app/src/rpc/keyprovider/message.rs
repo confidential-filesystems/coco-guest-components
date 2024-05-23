@@ -159,6 +159,7 @@ impl Ec {
 pub struct KeyUnwrapParams {
     pub dc: Option<Dc>,
     pub annotation: Option<String>,
+    pub extra_credential: Option<String>,
 }
 
 #[allow(dead_code)]

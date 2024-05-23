@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+extern crate core;
+
 use clap::Parser;
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
@@ -29,6 +31,7 @@ const DEFAULT_FEATURE: &str = "resource";
 const CDH_ADDR: &str = "unix:///run/confidential-containers/cdh.sock";
 const AA_ADDR: &str =
     "unix:///run/confidential-containers/attestation-agent/attestation-agent.sock";
+const AA_ATTESTER: &str = "all";
 
 /// API Server arguments info.
 #[derive(Parser, Debug)]
@@ -49,6 +52,10 @@ struct Args {
     /// Listen address of attestation-agent TTRPC Service
     #[arg(default_value_t = AA_ADDR.to_string(), short, long = "aa_addr")]
     aa_addr: String,
+
+    // aa_attester of attestation-agent
+    #[arg(default_value_t = AA_ATTESTER.to_string(), short, long = "aa_attester")]
+    aa_attester: String,
 }
 
 #[tokio::main]
@@ -59,6 +66,7 @@ async fn main() -> Result<()> {
         "Starting API server on {} with features {}",
         args.bind, args.features
     );
+    println!("cctata11 - Starting api-server-rest : args.aa_attester = {:?}", args.aa_attester);
 
     let address: SocketAddr = args.bind.parse().expect("Failed to parse the address");
 
@@ -68,26 +76,26 @@ async fn main() -> Result<()> {
         "resource" => {
             router.register_route(
                 CDH_ROOT,
-                Box::new(CDHClient::new(&args.cdh_addr, vec![Method::GET])?),
+                Box::new(CDHClient::new(&args.cdh_addr, &args.aa_attester, vec![Method::GET])?),
             );
         }
 
         "attestation" => {
             router.register_route(
                 AA_ROOT,
-                Box::new(AAClient::new(&args.aa_addr, vec![Method::GET])?),
+                Box::new(AAClient::new(&args.aa_addr, &args.aa_attester, vec![Method::GET])?),
             );
         }
 
         "all" => {
             router.register_route(
                 CDH_ROOT,
-                Box::new(CDHClient::new(&args.cdh_addr, vec![Method::GET])?),
+                Box::new(CDHClient::new(&args.cdh_addr, &args.aa_attester, vec![Method::GET])?),
             );
 
             router.register_route(
                 AA_ROOT,
-                Box::new(AAClient::new(&args.aa_addr, vec![Method::GET])?),
+                Box::new(AAClient::new(&args.aa_addr, &args.aa_attester, vec![Method::GET])?),
             );
         }
 

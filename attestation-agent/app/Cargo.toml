@@ -9,6 +9,7 @@ edition = "2021"
 anyhow.workspace = true
 async-trait.workspace = true
 attestation_agent = { path = "../lib", default-features = false }
+attester = { path = "../attester", default-features = false }
 base64.workspace = true
 cfg-if.workspace = true
 clap = { workspace = true, features = ["derive"] }

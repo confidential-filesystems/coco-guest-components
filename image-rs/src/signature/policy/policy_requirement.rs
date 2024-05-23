@@ -10,6 +10,15 @@ use serde::*;
 use crate::signature::image::Image;
 use crate::signature::mechanism::{cosign::CosignParameters, simple::SimpleParameters, SignScheme};
 
+#[cfg(feature = "signature-cosign")]
+use sigstore::cosign::SignatureLayer;
+
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 /// Policy Requirement Types.
 /// * `Accept`: s.t. `insecureAcceptAnything`, skip signature verification, accept the image unconditionally.
 /// * `Reject`: s.t. `reject`, reject the image directly.
@@ -40,12 +49,13 @@ pub enum PolicyReqType {
 
 impl PolicyReqType {
     /// Check whether an image is allowed by a given policy requirement.
-    pub async fn allows_image(&self, image: &mut Image, auth: &RegistryAuth) -> Result<()> {
+    pub async fn allows_image(&self, image: &mut Image, auth: &RegistryAuth, signature_layers: Vec<SignatureLayer>, ie_data: &crate::extra::token::InternalExtraData) -> Result<()> {
+        slog::info!(sl(), "confilesystem18 - PolicyReqType.allows_image(): ");
         match self {
             PolicyReqType::Accept => Ok(()),
             PolicyReqType::Reject => Err(anyhow!(r#"The policy is "reject""#)),
-            PolicyReqType::SimpleSigning(inner) => inner.allows_image(image, auth).await,
-            PolicyReqType::Cosign(inner) => inner.allows_image(image, auth).await,
+            PolicyReqType::SimpleSigning(inner) => inner.allows_image(image, auth, signature_layers, ie_data).await,
+            PolicyReqType::Cosign(inner) => inner.allows_image(image, auth, signature_layers, ie_data).await,
         }
     }
 

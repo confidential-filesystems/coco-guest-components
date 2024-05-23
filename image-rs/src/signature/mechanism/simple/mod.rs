@@ -10,11 +10,20 @@ use serde::*;
 use strum_macros::Display;
 use strum_macros::EnumString;
 
+#[cfg(feature = "signature-cosign")]
+use sigstore::cosign::SignatureLayer;
+
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 #[cfg(feature = "signature-simple")]
 use base64::Engine;
 
 #[cfg(feature = "signature-simple")]
-mod sigstore;
+mod sigstore_local;
 #[cfg(feature = "signature-simple")]
 mod verify;
 #[cfg(feature = "signature-simple-xrss")]
@@ -53,10 +62,10 @@ pub struct SimpleParameters {
     /// Sigstore config file
     #[cfg(feature = "signature-simple")]
     #[serde(skip)]
-    pub(crate) sig_store_config_file: sigstore::SigstoreConfig,
+    pub(crate) sig_store_config_file: sigstore_local::SigstoreConfig,
 }
 
-/// Prepare directories for configs and sigstore configs.
+/// Prepare directories for configs and sigstore_local configs.
 /// It will create (if not) the following dirs:
 /// * [`SIG_STORE_CONFIG_DIR`]
 #[cfg(feature = "signature-simple")]
@@ -64,7 +73,7 @@ async fn prepare_runtime_dirs(sig_store_config_dir: &str) -> Result<()> {
     if !std::path::Path::new(sig_store_config_dir).exists() {
         tokio::fs::create_dir_all(sig_store_config_dir)
             .await
-            .map_err(|e| anyhow!("Create Simple Signing sigstore-config dir failed: {:?}", e))?;
+            .map_err(|e| anyhow!("Create Simple Signing sigstore_local-config dir failed: {:?}", e))?;
     }
     Ok(())
 }
@@ -73,19 +82,19 @@ async fn prepare_runtime_dirs(sig_store_config_dir: &str) -> Result<()> {
 impl SignScheme for SimpleParameters {
     /// Init simple scheme signing
     #[cfg(feature = "signature-simple")]
-    async fn init(&mut self, config: &Paths) -> Result<()> {
+    async fn init(&mut self, config: &Paths, ie_data: &crate::extra::token::InternalExtraData) -> Result<()> {
         prepare_runtime_dirs(crate::config::SIG_STORE_CONFIG_DIR).await?;
         self.initialize_sigstore_config().await?;
-        let sig_store_config_file = crate::resource::get_resource(&config.sigstore_config).await;
+        let sig_store_config_file = crate::resource::get_resource(&config.sigstore_config, ie_data).await;
 
         #[cfg(feature = "signature-simple-xrss")]
         if sig_store_config_file.is_err() {
-            // When using xrss extension a sigstore config file is optional
+            // When using xrss extension a sigstore_local config file is optional
             return Ok(());
         }
 
         let sig_store_config_file =
-            serde_yaml::from_slice::<sigstore::SigstoreConfig>(&sig_store_config_file?)?;
+            serde_yaml::from_slice::<sigstore_local::SigstoreConfig>(&sig_store_config_file?)?;
         self.sig_store_config_file
             .update_self(sig_store_config_file)?;
         Ok(())
@@ -97,7 +106,8 @@ impl SignScheme for SimpleParameters {
     }
 
     #[cfg(feature = "signature-simple")]
-    async fn allows_image(&self, image: &mut Image, _auth: &RegistryAuth) -> Result<()> {
+    async fn allows_image(&self, image: &mut Image, _auth: &RegistryAuth, _signature_layers: Vec<SignatureLayer>, ie_data: &crate::extra::token::InternalExtraData) -> Result<()> {
+        slog::info!(sl(), "confilesystem1 - SimpleParameters.allows_image(): -1 ");
         // FIXME: only support "GPGKeys" type now.
         //
         // refer to https://github.com/confidential-containers/image-rs/issues/14
@@ -113,7 +123,7 @@ impl SignScheme for SimpleParameters {
             (Some(_), Some(_)) => bail!("Both keyPath and keyData specified."),
             (None, Some(key_data)) => base64::engine::general_purpose::STANDARD.decode(key_data)?,
             (Some(key_path), None) => {
-                crate::resource::get_resource(key_path).await.map_err(|e| {
+                crate::resource::get_resource(key_path, ie_data).await.map_err(|e| {
                     anyhow!("Read SignedBy keyPath failed: {:?}, path: {}", e, key_path)
                 })?
             }
@@ -123,6 +133,7 @@ impl SignScheme for SimpleParameters {
         let mut reject_reasons: Vec<anyhow::Error> = Vec::new();
 
         for sig in sigs.iter() {
+            slog::info!(sl(), "confilesystem1 - SimpleParameters.allows_image(): -2 ");
             match judge_single_signature(
                 image,
                 self.signed_identity.as_ref(),
@@ -190,11 +201,11 @@ pub fn judge_single_signature(
 
 #[cfg(feature = "signature-simple")]
 impl SimpleParameters {
-    /// Set the content of sigstore config with files in
+    /// Set the content of sigstore_local config with files in
     /// [`crate::config::SIG_STORE_CONFIG_DIR`]
     pub async fn initialize_sigstore_config(&mut self) -> Result<()> {
         let sigstore_config =
-            sigstore::SigstoreConfig::new_from_configs(crate::config::SIG_STORE_CONFIG_DIR).await?;
+            sigstore_local::SigstoreConfig::new_from_configs(crate::config::SIG_STORE_CONFIG_DIR).await?;
         self.sig_store_config_file.update_self(sigstore_config)?;
 
         Ok(())
@@ -222,28 +233,28 @@ impl SimpleParameters {
                 .get_signatures_from_registry(image, &image_digest, _auth)
                 .await?;
             sigs.append(&mut registry_sigs);
-            if self.sig_store_config_file == sigstore::SigstoreConfig::default() {
+            if self.sig_store_config_file == sigstore_local::SigstoreConfig::default() {
                 if sigs.is_empty() {
-                    bail!("Missing sigstore config file and no signatures in registry");
+                    bail!("Missing sigstore_local config file and no signatures in registry");
                 }
 
                 return Ok(sigs);
             }
         }
 
-        // Format the sigstore name: `image-repository@digest-algorithm=digest-value`.
-        let sigstore_name = sigstore::format_sigstore_name(&image.reference, image_digest);
+        // Format the sigstore_local name: `image-repository@digest-algorithm=digest-value`.
+        let sigstore_name = sigstore_local::format_sigstore_name(&image.reference, image_digest);
 
         let sigstore_base_url = self
             .sig_store_config_file
             .base_url(&image.reference)?
-            .ok_or_else(|| anyhow!("The sigstore base url is none"))?;
+            .ok_or_else(|| anyhow!("The sigstore_local base url is none"))?;
 
-        let sigstore = format!("{}/{}", &sigstore_base_url, &sigstore_name);
-        let sigstore_uri = url::Url::parse(&sigstore)
+        let sigstore_local = format!("{}/{}", &sigstore_base_url, &sigstore_name);
+        let sigstore_uri = url::Url::parse(&sigstore_local)
             .map_err(|e| anyhow!("Failed to parse sigstore_uri: {:?}", e))?;
 
-        let mut sigstore_sigs = sigstore::get_sigs_from_specific_sigstore(sigstore_uri).await?;
+        let mut sigstore_sigs = sigstore_local::get_sigs_from_specific_sigstore(sigstore_uri).await?;
         sigs.append(&mut sigstore_sigs);
 
         Ok(sigs)

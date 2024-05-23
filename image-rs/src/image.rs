@@ -23,6 +23,13 @@ use crate::meta_store::{MetaStore, METAFILE};
 use crate::pull::PullClient;
 use crate::snapshots::{SnapshotType, Snapshotter};
 
+//use log::{info};
+
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
 #[cfg(feature = "snapshot-unionfs")]
 use crate::snapshots::occlum::unionfs::Unionfs;
 #[cfg(feature = "snapshot-overlayfs")]
@@ -159,14 +166,24 @@ impl ImageClient {
     /// When `auth_info` parameter is given and `auth` in self.config is also enabled,
     /// this function will only try to get auth from `auth_info`, and if fails then
     /// then returns an error.
+    #[allow(unused_variables)]
     pub async fn pull_image(
         &mut self,
         image_url: &str,
         bundle_dir: &Path,
         auth_info: &Option<&str>,
         decrypt_config: &Option<&str>,
+        ie_data: &mut crate::extra::token::InternalExtraData,
     ) -> Result<String> {
+        slog::info!(sl(), "confilesystem16 - ImageClient.pull_image(): image_url = {:?}, ie_data.is_init_container = {:?}, \
+            ie_data.aa_attester = {:?}, ie_data.container_name = {:?}, \
+            ie_data.controller_crp_token.len() = {:?}, ie_data.authorized_res = {:?}",
+            image_url, ie_data.is_init_container, ie_data.aa_attester, ie_data.container_name,
+            ie_data.controller_crp_token.len(), ie_data.authorized_res);
+
         let reference = Reference::try_from(image_url)?;
+        slog::info!(sl(), "confilesystem12 - ImageClient.pull_image(): image_url = {:?}, reference = {:?}",
+            image_url, reference);
 
         // Try to get auth using input param.
         let auth = if let Some(auth_info) = auth_info {
@@ -216,6 +233,7 @@ impl ImageClient {
                 match crate::auth::credential_for_reference(
                     &reference,
                     &self.config.file_paths.auth_file,
+                    ie_data,
                 )
                 .await
                 {
@@ -239,6 +257,7 @@ impl ImageClient {
             &auth,
             self.config.max_concurrent_download,
         )?;
+        slog::info!(sl(), "confilesystem1 - ImageClient.pull_image(): client.pull_manifest()");
         let (image_manifest, image_digest, image_config) = client.pull_manifest().await?;
 
         let id = image_manifest.config.digest.clone();
@@ -269,6 +288,7 @@ impl ImageClient {
                     &image_digest,
                     &auth,
                     &self.config.file_paths,
+                    ie_data,
                 )
                 .await
                 .map_err(|e| anyhow!("Security validate failed: {:?}", e))?;
@@ -289,6 +309,7 @@ impl ImageClient {
                     &image_manifest,
                     decrypt_config,
                     bundle_dir,
+                    ie_data,
                 )
                 .await;
         }
@@ -308,11 +329,13 @@ impl ImageClient {
                 &image_digest,
                 &auth,
                 &self.config.file_paths,
+                ie_data,
             )
             .await
-            .map_err(|e| anyhow!("Security validate failed: {:?}", e))?;
+            .map_err(|e| anyhow!("confilesystem18 - crate::signature::allows_image(): Security validate failed: {:?}", e))?;
         }
 
+        slog::info!(sl(), "confilesystem1 - ImageClient.pull_image(): create_image_meta()");
         let (mut image_data, unique_layers, unique_diff_ids) = create_image_meta(
             &id,
             image_url,
@@ -321,6 +344,7 @@ impl ImageClient {
             &image_config,
         )?;
 
+        slog::info!(sl(), "confilesystem1 - ImageClient.pull_image(): client.async_pull_layers()");
         let unique_layers_len = unique_layers.len();
         let layer_metas = client
             .async_pull_layers(
@@ -328,6 +352,7 @@ impl ImageClient {
                 &unique_diff_ids,
                 decrypt_config,
                 self.meta_store.clone(),
+                ie_data,
             )
             .await?;
 
@@ -365,6 +390,7 @@ impl ImageClient {
         image_manifest: &OciImageManifest,
         decrypt_config: &Option<&str>,
         bundle_dir: &Path,
+        ie_data: &crate::extra::token::InternalExtraData,
     ) -> Result<String> {
         let diff_ids = image_data.image_config.rootfs().diff_ids();
         let bootstrap_id = if !diff_ids.is_empty() {
@@ -381,6 +407,7 @@ impl ImageClient {
                 bootstrap_id.to_string(),
                 decrypt_config,
                 self.meta_store.clone(),
+                ie_data,
             )
             .await?;
         image_data.layer_metas = vec![layer_metas];
@@ -508,6 +535,7 @@ mod tests {
     use super::*;
 
     use test_utils::assert_retry;
+    use crate::extra;
 
     #[tokio::test]
     async fn test_pull_image() {
@@ -600,8 +628,9 @@ mod tests {
         let mut image_client = ImageClient::default();
 
         let bundle1_dir = tempfile::tempdir().unwrap();
+        let mut ie_data = extra::token::InternalExtraData::init("".to_string(), "".to_string(), "".to_string(), "".to_string(), "".to_string(), false);
         if let Err(e) = image_client
-            .pull_image(image, bundle1_dir.path(), &None, &None)
+            .pull_image(image, bundle1_dir.path(), &None, &None, &mut ie_data)
             .await
         {
             panic!("failed to download image: {}", e);
@@ -609,8 +638,9 @@ mod tests {
 
         // Pull image again.
         let bundle2_dir = tempfile::tempdir().unwrap();
+        let mut ie_data = extra::token::InternalExtraData::init("".to_string(), "".to_string(), "".to_string(), "".to_string(), "".to_string(), false);
         if let Err(e) = image_client
-            .pull_image(image, bundle2_dir.path(), &None, &None)
+            .pull_image(image, bundle2_dir.path(), &None, &None, &mut ie_data)
             .await
         {
             panic!("failed to download image: {}", e);

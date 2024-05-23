@@ -16,7 +16,9 @@ nix = {version = "0.26.2", optional = true }
 occlum_dcap = { git = "https://github.com/occlum/occlum", tag = "v0.29.7", optional = true }
 serde.workspace = true
 serde_json.workspace = true
-sev = { version = "1.2.0", default-features = false, features = ["snp"], optional = true }
+# 3.1.1
+sev = { version = "1.2.1", default-features = false, features = ["snp"], optional = true }
+#sev = { path = "../../../sev-1.2.1", default-features = false, features = ["snp"], optional = true }
 strum.workspace = true
 tdx-attest-rs = { git = "https://github.com/intel/SGXDataCenterAttestationPrimitives", tag = "DCAP_1.16", optional = true }
 # TODO: change it to "0.1", once released.
@@ -25,6 +27,7 @@ codicon = { version = "3.0", optional = true }
 hyper = { version = "0.14", features = ["full"], optional = true }
 hyper-tls = { version = "0.5", optional = true }
 tokio = { version = "1", features = ["full"], optional = true }
+sha2 = "0.10.7"
 
 [dev-dependencies]
 tokio.workspace = true
