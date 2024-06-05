@@ -122,8 +122,11 @@ impl ApiHandler for AAClient {
                     if self.aa_attester != extra_credential.aa_attester {
                         return self.bad_request();
                     }
+                    // see: coco-trustee api_server::http::evidence::get_runtime_data
+                    let runtime_data_vec = hex::decode(runtime_data.clone())
+                        .unwrap_or_else(|e| e.to_string().into());
                     let results = self
-                        .get_evidence_extra(&runtime_data.clone().into_bytes(), &extra_credential)
+                        .get_evidence_extra(runtime_data_vec, &extra_credential)
                         .await
                         .unwrap_or_else(|e| e.to_string().into());
                     return self.octet_stream_response(results);
@@ -198,7 +201,7 @@ impl AAClient {
         Ok(res.Token)
     }
 
-    pub async fn get_evidence_extra(&self, runtime_data: &[u8], extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+    pub async fn get_evidence_extra(&self, runtime_data: Vec<u8>, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         println!("confilesystem10 - AAClient::get_evidence_extra(): runtime_data = {:?}, extra_credential = {:?}",
                  runtime_data, extra_credential);
 
@@ -212,7 +215,7 @@ impl AAClient {
         };
 
         let req = GetEvidenceRequest {
-            RuntimeData: runtime_data.to_vec(),
+            RuntimeData: runtime_data,
             ExtraCredential: protobuf::MessageField::some(extra_credential_ttrpc),
             ..Default::default()
         };

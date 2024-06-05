@@ -149,6 +149,7 @@ dependencies = [
  "attester",
  "clap 4.2.7",
  "form_urlencoded",
+ "hex",
  "hyper",
  "log",
  "protobuf 3.2.0",

@@ -16,6 +16,7 @@ protobuf = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 ttrpc = { workspace = true, features = ["async"] }
 serde_json.workspace = true
+hex.workspace = true
 attester = { path = "../attestation-agent/attester", default-features = false }
 
 [build-dependencies]
