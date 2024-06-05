@@ -278,7 +278,7 @@ fn get_emulate_cert(report_data: Vec<u8>, extra_credential: &crate::extra_creden
     cert
 }
 
-fn get_hash_48bites(input: &str) -> [u8; REPORT_DATA_LEN_DEFAULT] {
+pub fn get_hash_48bites(input: &str) -> [u8; REPORT_DATA_LEN_DEFAULT] {
     let mut hasher = Sha384::new();
     hasher.update(input.as_bytes());
     let partial_hash = hasher.finalize();
