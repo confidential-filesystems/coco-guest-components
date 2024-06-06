@@ -203,7 +203,7 @@ pub mod ttrpc {
             let attestation_agent_mutex_clone = ASYNC_ATTESTATION_AGENT.clone();
             let mut attestation_agent = attestation_agent_mutex_clone.lock().await;
 
-            let evidence = attestation_agent
+            let (tee, evidence) = attestation_agent
                 .get_evidence(&req.RuntimeData, &extra_credential)
                 .await
                 .map_err(|e| {
@@ -220,6 +220,7 @@ pub mod ttrpc {
             debug!("Get evidence successfully!");
 
             let mut reply = attestation_agent::GetEvidenceResponse::new();
+            reply.Tee = protobuf::EnumOrUnknown::from_i32(tee as i32);
             reply.Evidence = evidence;
 
             ::ttrpc::Result::Ok(reply)

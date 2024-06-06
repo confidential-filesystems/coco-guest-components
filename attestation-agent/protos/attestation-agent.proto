@@ -15,8 +15,27 @@ message GetEvidenceRequest {
     ExtraCredential ExtraCredential = 2;
 }
 
+enum TeeType {
+    AzSnpVtpm = 0;
+    Sev = 1;
+    Sgx = 2;
+    Snp = 3;
+    Tdx = 4;
+    // Arm Confidential Compute Architecture
+    Cca = 5;
+    // China Secure Virtualization
+    Csv = 6;
+
+    // This value is only used for testing an attestation server, and should not
+    // be used in an actual attestation scenario.
+    Sample = 7;
+    // cfs challenge
+    Challenge = 8;
+}
+
 message GetEvidenceResponse {
-    bytes Evidence = 1;
+    TeeType Tee = 1;
+    bytes Evidence = 2;
 }
 
 message GetTokenRequest {

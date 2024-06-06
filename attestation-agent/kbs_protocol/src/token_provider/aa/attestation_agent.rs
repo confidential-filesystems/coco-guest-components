@@ -364,6 +364,8 @@ impl ::protobuf::reflect::ProtobufValue for GetEvidenceRequest {
 // @@protoc_insertion_point(message:attestation_agent.GetEvidenceResponse)
 pub struct GetEvidenceResponse {
     // message fields
+    // @@protoc_insertion_point(field:attestation_agent.GetEvidenceResponse.Tee)
+    pub Tee: ::protobuf::EnumOrUnknown<TeeType>,
     // @@protoc_insertion_point(field:attestation_agent.GetEvidenceResponse.Evidence)
     pub Evidence: ::std::vec::Vec<u8>,
     // special fields
@@ -383,8 +385,13 @@ impl GetEvidenceResponse {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(1);
+        let mut fields = ::std::vec::Vec::with_capacity(2);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "Tee",
+            |m: &GetEvidenceResponse| { &m.Tee },
+            |m: &mut GetEvidenceResponse| { &mut m.Tee },
+        ));
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
             "Evidence",
             |m: &GetEvidenceResponse| { &m.Evidence },
@@ -408,7 +415,10 @@ impl ::protobuf::Message for GetEvidenceResponse {
     fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
         while let Some(tag) = is.read_raw_tag_or_eof()? {
             match tag {
-                10 => {
+                8 => {
+                    self.Tee = is.read_enum_or_unknown()?;
+                },
+                18 => {
                     self.Evidence = is.read_bytes()?;
                 },
                 tag => {
@@ -423,8 +433,11 @@ impl ::protobuf::Message for GetEvidenceResponse {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u64 {
         let mut my_size = 0;
+        if self.Tee != ::protobuf::EnumOrUnknown::new(TeeType::AzSnpVtpm) {
+            my_size += ::protobuf::rt::int32_size(1, self.Tee.value());
+        }
         if !self.Evidence.is_empty() {
-            my_size += ::protobuf::rt::bytes_size(1, &self.Evidence);
+            my_size += ::protobuf::rt::bytes_size(2, &self.Evidence);
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
@@ -432,8 +445,11 @@ impl ::protobuf::Message for GetEvidenceResponse {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if self.Tee != ::protobuf::EnumOrUnknown::new(TeeType::AzSnpVtpm) {
+            os.write_enum(1, ::protobuf::EnumOrUnknown::value(&self.Tee))?;
+        }
         if !self.Evidence.is_empty() {
-            os.write_bytes(1, &self.Evidence)?;
+            os.write_bytes(2, &self.Evidence)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -452,12 +468,14 @@ impl ::protobuf::Message for GetEvidenceResponse {
     }
 
     fn clear(&mut self) {
+        self.Tee = ::protobuf::EnumOrUnknown::new(TeeType::AzSnpVtpm);
         self.Evidence.clear();
         self.special_fields.clear();
     }
 
     fn default_instance() -> &'static GetEvidenceResponse {
         static instance: GetEvidenceResponse = GetEvidenceResponse {
+            Tee: ::protobuf::EnumOrUnknown::from_i32(0),
             Evidence: ::std::vec::Vec::new(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
@@ -745,6 +763,88 @@ impl ::protobuf::reflect::ProtobufValue for GetTokenResponse {
     type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
 }
 
+#[derive(Clone,Copy,PartialEq,Eq,Debug,Hash)]
+// @@protoc_insertion_point(enum:attestation_agent.TeeType)
+pub enum TeeType {
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.AzSnpVtpm)
+    AzSnpVtpm = 0,
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.Sev)
+    Sev = 1,
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.Sgx)
+    Sgx = 2,
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.Snp)
+    Snp = 3,
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.Tdx)
+    Tdx = 4,
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.Cca)
+    Cca = 5,
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.Csv)
+    Csv = 6,
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.Sample)
+    Sample = 7,
+    // @@protoc_insertion_point(enum_value:attestation_agent.TeeType.Challenge)
+    Challenge = 8,
+}
+
+impl ::protobuf::Enum for TeeType {
+    const NAME: &'static str = "TeeType";
+
+    fn value(&self) -> i32 {
+        *self as i32
+    }
+
+    fn from_i32(value: i32) -> ::std::option::Option<TeeType> {
+        match value {
+            0 => ::std::option::Option::Some(TeeType::AzSnpVtpm),
+            1 => ::std::option::Option::Some(TeeType::Sev),
+            2 => ::std::option::Option::Some(TeeType::Sgx),
+            3 => ::std::option::Option::Some(TeeType::Snp),
+            4 => ::std::option::Option::Some(TeeType::Tdx),
+            5 => ::std::option::Option::Some(TeeType::Cca),
+            6 => ::std::option::Option::Some(TeeType::Csv),
+            7 => ::std::option::Option::Some(TeeType::Sample),
+            8 => ::std::option::Option::Some(TeeType::Challenge),
+            _ => ::std::option::Option::None
+        }
+    }
+
+    const VALUES: &'static [TeeType] = &[
+        TeeType::AzSnpVtpm,
+        TeeType::Sev,
+        TeeType::Sgx,
+        TeeType::Snp,
+        TeeType::Tdx,
+        TeeType::Cca,
+        TeeType::Csv,
+        TeeType::Sample,
+        TeeType::Challenge,
+    ];
+}
+
+impl ::protobuf::EnumFull for TeeType {
+    fn enum_descriptor() -> ::protobuf::reflect::EnumDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::EnumDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().enum_by_package_relative_name("TeeType").unwrap()).clone()
+    }
+
+    fn descriptor(&self) -> ::protobuf::reflect::EnumValueDescriptor {
+        let index = *self as usize;
+        Self::enum_descriptor().value_by_index(index)
+    }
+}
+
+impl ::std::default::Default for TeeType {
+    fn default() -> Self {
+        TeeType::AzSnpVtpm
+    }
+}
+
+impl TeeType {
+    fn generated_enum_descriptor_data() -> ::protobuf::reflect::GeneratedEnumDescriptorData {
+        ::protobuf::reflect::GeneratedEnumDescriptorData::new::<TeeType>("TeeType")
+    }
+}
+
 static file_descriptor_proto_data: &'static [u8] = b"\
     \n\x17attestation-agent.proto\x12\x11attestation_agent\"\xfb\x01\n\x0fEx\
     traCredential\x12.\n\x12ControllerCrpToken\x18\x01\x20\x01(\tR\x12Contro\
@@ -754,16 +854,20 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x01(\tR\nAAAttester\x12$\n\rContainerName\x18\x05\x20\x01(\tR\rContaine\
     rName\"\x84\x01\n\x12GetEvidenceRequest\x12\x20\n\x0bRuntimeData\x18\x01\
     \x20\x01(\x0cR\x0bRuntimeData\x12L\n\x0fExtraCredential\x18\x02\x20\x01(\
-    \x0b2\".attestation_agent.ExtraCredentialR\x0fExtraCredential\"1\n\x13Ge\
-    tEvidenceResponse\x12\x1a\n\x08Evidence\x18\x01\x20\x01(\x0cR\x08Evidenc\
-    e\"}\n\x0fGetTokenRequest\x12\x1c\n\tTokenType\x18\x01\x20\x01(\tR\tToke\
-    nType\x12L\n\x0fExtraCredential\x18\x02\x20\x01(\x0b2\".attestation_agen\
-    t.ExtraCredentialR\x0fExtraCredential\"(\n\x10GetTokenResponse\x12\x14\n\
-    \x05Token\x18\x01\x20\x01(\x0cR\x05Token2\xcc\x01\n\x17AttestationAgentS\
-    ervice\x12\\\n\x0bGetEvidence\x12%.attestation_agent.GetEvidenceRequest\
-    \x1a&.attestation_agent.GetEvidenceResponse\x12S\n\x08GetToken\x12\".att\
-    estation_agent.GetTokenRequest\x1a#.attestation_agent.GetTokenResponseb\
-    \x06proto3\
+    \x0b2\".attestation_agent.ExtraCredentialR\x0fExtraCredential\"_\n\x13Ge\
+    tEvidenceResponse\x12,\n\x03Tee\x18\x01\x20\x01(\x0e2\x1a.attestation_ag\
+    ent.TeeTypeR\x03Tee\x12\x1a\n\x08Evidence\x18\x02\x20\x01(\x0cR\x08Evide\
+    nce\"}\n\x0fGetTokenRequest\x12\x1c\n\tTokenType\x18\x01\x20\x01(\tR\tTo\
+    kenType\x12L\n\x0fExtraCredential\x18\x02\x20\x01(\x0b2\".attestation_ag\
+    ent.ExtraCredentialR\x0fExtraCredential\"(\n\x10GetTokenResponse\x12\x14\
+    \n\x05Token\x18\x01\x20\x01(\x0cR\x05Token*i\n\x07TeeType\x12\r\n\tAzSnp\
+    Vtpm\x10\0\x12\x07\n\x03Sev\x10\x01\x12\x07\n\x03Sgx\x10\x02\x12\x07\n\
+    \x03Snp\x10\x03\x12\x07\n\x03Tdx\x10\x04\x12\x07\n\x03Cca\x10\x05\x12\
+    \x07\n\x03Csv\x10\x06\x12\n\n\x06Sample\x10\x07\x12\r\n\tChallenge\x10\
+    \x082\xcc\x01\n\x17AttestationAgentService\x12\\\n\x0bGetEvidence\x12%.a\
+    ttestation_agent.GetEvidenceRequest\x1a&.attestation_agent.GetEvidenceRe\
+    sponse\x12S\n\x08GetToken\x12\".attestation_agent.GetTokenRequest\x1a#.a\
+    ttestation_agent.GetTokenResponseb\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -787,7 +891,8 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
             messages.push(GetEvidenceResponse::generated_message_descriptor_data());
             messages.push(GetTokenRequest::generated_message_descriptor_data());
             messages.push(GetTokenResponse::generated_message_descriptor_data());
-            let mut enums = ::std::vec::Vec::with_capacity(0);
+            let mut enums = ::std::vec::Vec::with_capacity(1);
+            enums.push(TeeType::generated_enum_descriptor_data());
             ::protobuf::reflect::GeneratedFileDescriptor::new_generated(
                 file_descriptor_proto(),
                 deps,

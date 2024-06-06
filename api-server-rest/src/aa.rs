@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use hyper::{Body, Method, Request, Response};
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use serde::{Serialize, Deserialize};
 
 use crate::{ttrpc_proto, TTRPC_TIMEOUT};
 
@@ -29,6 +30,14 @@ pub struct AAClient {
     client: AttestationAgentServiceClient,
     aa_attester: String,
     accepted_method: Vec<Method>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct EvidenceAARsp {
+    #[serde(rename = "tee-type")]
+    pub tee_type: i32,
+    #[serde(rename = "evidence")]
+    pub evidence: Vec<u8>,
 }
 
 #[async_trait]
@@ -122,14 +131,11 @@ impl ApiHandler for AAClient {
                     if self.aa_attester != extra_credential.aa_attester {
                         return self.bad_request();
                     }
-                    // see: coco-trustee api_server::http::evidence::get_runtime_data
-                    let runtime_data_vec = hex::decode(runtime_data.clone())
-                        .unwrap_or_else(|e| e.to_string().into());
-                    let results = self
-                        .get_evidence_extra(runtime_data_vec, &extra_credential)
+                    let evidence_rsp = self
+                        .get_evidence_extra(runtime_data, &extra_credential)
                         .await
                         .unwrap_or_else(|e| e.to_string().into());
-                    return self.octet_stream_response(results);
+                    return self.octet_stream_response(evidence_rsp);
                 }
                 None => return self.bad_request(),
             },
@@ -201,9 +207,12 @@ impl AAClient {
         Ok(res.Token)
     }
 
-    pub async fn get_evidence_extra(&self, runtime_data: Vec<u8>, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+    pub async fn get_evidence_extra(&self, runtime_data: &str, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
         println!("confilesystem10 - AAClient::get_evidence_extra(): runtime_data = {:?}, extra_credential = {:?}",
                  runtime_data, extra_credential);
+
+        // see: coco-trustee api_server::http::evidence::get_runtime_data
+        let runtime_data_vec = hex::decode(runtime_data.clone())?;
 
         let extra_credential_ttrpc = ttrpc_proto::attestation_agent::ExtraCredential {
             ControllerCrpToken: extra_credential.controller_crp_token.clone(),
@@ -215,7 +224,7 @@ impl AAClient {
         };
 
         let req = GetEvidenceRequest {
-            RuntimeData: runtime_data,
+            RuntimeData: runtime_data_vec,
             ExtraCredential: protobuf::MessageField::some(extra_credential_ttrpc),
             ..Default::default()
         };
@@ -223,6 +232,13 @@ impl AAClient {
             .client
             .get_evidence(ttrpc::context::with_timeout(TTRPC_TIMEOUT), &req)
             .await?;
-        Ok(res.Evidence)
+
+        let evidence_aa_rsp = EvidenceAARsp{
+            tee_type: res.Tee.value(),
+            evidence: res.Evidence,
+        };
+        let evidence_vec = serde_json::to_vec(&evidence_aa_rsp)?;
+
+        Ok(evidence_vec)
     }
 }

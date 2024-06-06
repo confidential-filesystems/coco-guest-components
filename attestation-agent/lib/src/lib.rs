@@ -81,7 +81,7 @@ pub trait AttestationAPIs {
     async fn get_token(&mut self, token_type: &str, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
 
     /// Get TEE hardware signed evidence that includes the runtime data.
-    async fn get_evidence(&mut self, runtime_data: &[u8], extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
+    async fn get_evidence(&mut self, runtime_data: &[u8], extra_credential: &attester::extra_credential::ExtraCredential) -> Result<(kbs_types::Tee, Vec<u8>)>;
 }
 
 /// Attestation agent to provide attestation service.
@@ -197,13 +197,13 @@ impl AttestationAPIs for AttestationAgent {
     }
 
     /// Get TEE hardware signed evidence that includes the runtime data.
-    async fn get_evidence(&mut self, runtime_data: &[u8], extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+    async fn get_evidence(&mut self, runtime_data: &[u8], extra_credential: &attester::extra_credential::ExtraCredential) -> Result<(kbs_types::Tee, Vec<u8>)> {
         log::info!("confilesystem10 - AttestationAgent.get_evidence(): runtime_data = {:?}", runtime_data);
         let tee_type = detect_tee_type().ok_or(anyhow!("no supported tee type found!"))?;
         let attester = TryInto::<BoxedAttester>::try_into(tee_type.clone())?;
         log::info!("confilesystem10 - AttestationAgent.get_evidence(): - 1: tee_type = {:?}", tee_type);
         let evidence = attester.get_evidence(runtime_data.to_vec(), extra_credential).await?;
         log::info!("confilesystem10 - AttestationAgent.get_evidence(): - 2");
-        Ok(evidence.into_bytes())
+        Ok((tee_type, evidence.into_bytes()))
     }
 }
