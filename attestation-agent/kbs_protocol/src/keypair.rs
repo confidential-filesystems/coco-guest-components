@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use crypto::{
@@ -56,19 +56,41 @@ impl TeeKeyPair {
     }
 
     pub fn decrypt_response(&self, response: Response) -> Result<Vec<u8>> {
+        //log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): - In");
+
         // deserialize the jose header and check that the key type matches
-        let protected: ProtectedHeader = serde_json::from_str(&response.protected)?;
+        //let protected: ProtectedHeader = serde_json::from_str(&response.protected)?;
+        let protected_json = URL_SAFE_NO_PAD.decode(&response.protected)?;
+        //log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): - 1");
+        let protected_json_str = std::str::from_utf8(&protected_json)?;
+        //log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): - 2");
+        let protected: ProtectedHeader = match serde_json::from_str(protected_json_str) {
+            Ok(protected) => {
+                protected
+            },
+            Err(e) => {
+                log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): response.protected = {:?} -> e = {:?}",
+                    response.protected, e);
+                return Err(anyhow!("Error TeeKeyPair.decrypt_response(): response.protected = {:?} -> e = {:?}",
+                    response.protected, e))
+            }
+        };
         let padding_mode = PaddingMode::try_from(&protected.alg[..])
             .context("Unsupported padding mode for wrapped key")?;
 
         // unwrap the wrapped key
+        //log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): - 3");
         let wrapped_symkey: Vec<u8> = URL_SAFE_NO_PAD.decode(&response.encrypted_key)?;
+        //log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): - 4");
         let symkey = self.decrypt(padding_mode, wrapped_symkey)?;
-
+        //log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): - 5");
         let iv = URL_SAFE_NO_PAD.decode(&response.iv)?;
         let ciphertext = URL_SAFE_NO_PAD.decode(&response.ciphertext)?;
 
+        log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): - 6: symkey.len() = {:?}, ciphertext.len() = {:?}, iv.len() = {:?}, protected.enc = {:?}",
+            symkey.len(), ciphertext.len(), iv.len(), protected.enc);
         let plaintext = crypto::decrypt(Zeroizing::new(symkey), ciphertext, iv, protected.enc)?;
+        log::info!("confilesystem20 - TeeKeyPair.decrypt_response(): - 7");
 
         Ok(plaintext)
     }
