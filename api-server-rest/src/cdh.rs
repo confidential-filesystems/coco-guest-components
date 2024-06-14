@@ -5,8 +5,8 @@
 
 use crate::router::ApiHandler;
 use crate::ttrpc_proto::attestation_agent::ExtraCredential;
-use crate::ttrpc_proto::confidential_data_hub::GetResourceRequest;
-use crate::ttrpc_proto::confidential_data_hub_ttrpc::GetResourceServiceClient;
+use crate::ttrpc_proto::confidential_data_hub::{GetResourceRequest, SetResourceRequest};
+use crate::ttrpc_proto::confidential_data_hub_ttrpc::ResourceServiceClient;
 use anyhow::*;
 use async_trait::async_trait;
 use hyper::{Body, Method, Request, Response};
@@ -27,7 +27,7 @@ pub const CDH_RESOURCE_URL_EXTRA: &str = "/resource_extra";
 const KBS_PREFIX: &str = "kbs://";
 
 pub struct CDHClient {
-    client: GetResourceServiceClient,
+    client: ResourceServiceClient,
     aa_attester: String,
     accepted_method: Vec<Method>,
 }
@@ -40,6 +40,8 @@ impl ApiHandler for CDHClient {
         url_path: &str,
         req: Request<Body>,
     ) -> Result<Response<Body>> {
+        println!("confilesystem20 - CDHClient::handle_request(): url_path = {:?}, req.method() = {:?}", url_path, req.method());
+
         if !remote_addr.ip().is_loopback() {
             // Return 403 Forbidden response.
             return self.forbidden();
@@ -61,26 +63,50 @@ impl ApiHandler for CDHClient {
                     return self.octet_stream_response(results);
                 }
                 CDH_RESOURCE_URL_EXTRA => {
-                    let extra_credential = match crate::utils::get_extra_credential_from_req(req).await {
-                        core::result::Result::Ok(content) => {
-                            println!("confilesystem10 - CDHClient::handle_request(): get_extra_credential_from_req() -> content = {:?}", content);
-                            content
+                    match req.method() {
+                        &Method::GET => {
+                            let extra_credential = match crate::utils::get_extra_credential_from_req(req).await {
+                                core::result::Result::Ok(content) => {
+                                    println!("confilesystem10 - CDHClient::handle_request(): get_extra_credential_from_req() -> content = {:?}", content);
+                                    content
+                                },
+                                Err(e) => {
+                                    println!("confilesystem10 - CDHClient::handle_request(): get_extra_credential_from_req() -> e = {:?}", e);
+                                    return self.bad_request();
+                                }
+                            };
+                            println!("confilesystem11 - CDHClient::handle_request(): extra_credential = {:?}, self.aa_attester = {:?}",
+                                     extra_credential, self.aa_attester);
+                            if self.aa_attester != extra_credential.aa_attester {
+                                return self.bad_request();
+                            }
+                            let results = self
+                                .get_resource_extra(resource_path, &extra_credential)
+                                .await
+                                .unwrap_or_else(|e| e.to_string().into());
+                            return self.octet_stream_response(results);
                         },
-                        Err(e) => {
-                            println!("confilesystem10 - CDHClient::handle_request(): get_extra_credential_from_req() -> e = {:?}", e);
-                            return self.bad_request();
+                        &Method::POST => {
+                            let resource_data = match crate::utils::get_body_from_req(req).await {
+                                core::result::Result::Ok(content) => {
+                                    //println!("confilesystem20 - CDHClient::handle_request(): get_body_from_req() -> content = {:?}", content);
+                                    content
+                                },
+                                Err(e) => {
+                                    println!("confilesystem20 - CDHClient::handle_request(): get_body_from_req() -> e = {:?}", e);
+                                    return self.bad_request();
+                                }
+                            };
+                            let results = self
+                                .set_resource_extra(resource_path, resource_data)
+                                .await
+                                .unwrap_or_else(|e| e.to_string().into());
+                            return self.octet_stream_response(results);
+                        },
+                        _ => {
+                            return self.not_allowed();
                         }
-                    };
-                    println!("confilesystem11 - CDHClient::handle_request(): extra_credential = {:?}, self.aa_attester = {:?}",
-                             extra_credential, self.aa_attester);
-                    if self.aa_attester != extra_credential.aa_attester {
-                        return self.bad_request();
                     }
-                    let results = self
-                        .get_resource_extra(resource_path, &extra_credential)
-                        .await
-                        .unwrap_or_else(|e| e.to_string().into());
-                    return self.octet_stream_response(results);
                 }
                 _ => {
                     return self.not_found();
@@ -95,7 +121,7 @@ impl ApiHandler for CDHClient {
 impl CDHClient {
     pub fn new(cdh_addr: &str, aa_attester: &str, accepted_method: Vec<Method>) -> Result<Self> {
         let inner = ttrpc::asynchronous::Client::connect(cdh_addr)?;
-        let client = GetResourceServiceClient::new(inner);
+        let client = ResourceServiceClient::new(inner);
 
         Ok(Self {
             client,
@@ -118,7 +144,7 @@ impl CDHClient {
     }
 
     pub async fn get_resource_extra(&self, resource_path: &str, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
-        println!("confilesystem10 - CDHClient::get_resource_extra(): resource_path = {:?}, extra_credential = {:?}",
+        println!("confilesystem20 - CDHClient::get_resource_extra(): resource_path = {:?}, extra_credential = {:?}",
                  resource_path, extra_credential);
 
         let extra_credential_ttrpc = ttrpc_proto::attestation_agent::ExtraCredential {
@@ -140,5 +166,21 @@ impl CDHClient {
             .get_resource(ttrpc::context::with_timeout(TTRPC_TIMEOUT), &req)
             .await?;
         Ok(res.Resource)
+    }
+
+    pub async fn set_resource_extra(&self, resource_path: &str, resource_data: Vec<u8>) -> Result<Vec<u8>> {
+        println!("confilesystem20 - CDHClient::set_resource_extra(): resource_path = {:?}, resource_data.len() = {:?}",
+                 resource_path, resource_data.len());
+
+        let req = SetResourceRequest {
+            ResourcePath: format!("{}{}", KBS_PREFIX, resource_path),
+            Resource: resource_data,
+            ..Default::default()
+        };
+        let res = self
+            .client
+            .set_resource(ttrpc::context::with_timeout(TTRPC_TIMEOUT), &req)
+            .await?;
+        Ok(res.Response)
     }
 }

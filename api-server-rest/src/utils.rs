@@ -20,7 +20,7 @@ pub fn split_nth_slash(url: &str, n: usize) -> Option<(&str, &str)> {
 pub async fn get_extra_credential_from_req(req: Request<Body>) -> Result<attester::extra_credential::ExtraCredential> {
     let body = match hyper::body::to_bytes(req.into_body()).await {
         core::result::Result::Ok(content) => {
-            println!("confilesystem10 - get_extra_credential_from_req(): req.into_body() -> content = {:?}", content);
+            //println!("confilesystem10 - get_extra_credential_from_req(): req.into_body() -> content = {:?}", content);
             content
         },
         Err(e) => {
@@ -33,7 +33,7 @@ pub async fn get_extra_credential_from_req(req: Request<Body>) -> Result<atteste
     }
     let extra_credential: attester::extra_credential::ExtraCredential = match serde_json::from_slice(&body) {
         core::result::Result::Ok(content) => {
-            println!("confilesystem10 - get_extra_credential_from_req(): serde_json::from_slice() -> content = {:?}", content);
+            //println!("confilesystem10 - get_extra_credential_from_req(): serde_json::from_slice() -> content = {:?}", content);
             content
         },
         Err(e) => {
@@ -43,6 +43,23 @@ pub async fn get_extra_credential_from_req(req: Request<Body>) -> Result<atteste
     };
     println!("confilesystem10 - get_extra_credential_from_req(): extra_credential = {:?}", extra_credential);
     Ok(extra_credential)
+}
+
+pub async fn get_body_from_req(req: Request<Body>) -> Result<Vec<u8>> {
+    let body = match hyper::body::to_bytes(req.into_body()).await {
+        core::result::Result::Ok(content) => {
+            //println!("confilesystem20 - get_body_from_req(): req.into_body() -> content = {:?}", content);
+            content
+        },
+        Err(e) => {
+            println!("confilesystem20 - get_body_from_req(): req.into_body() -> e = {:?}", e);
+            return Err(anyhow!("get_body_from_req(): get body: e = {:?}", e));
+        }
+    };
+    if body.len() <= 0 {
+        return Err(anyhow!("get_body_from_req(): body.len() = {:?}", body.len()));
+    }
+    Ok(body.to_vec())
 }
 
 #[cfg(test)]

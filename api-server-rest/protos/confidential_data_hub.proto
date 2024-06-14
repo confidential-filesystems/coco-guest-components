@@ -13,6 +13,16 @@ message GetResourceResponse {
     bytes Resource = 1;
 }
 
-service GetResourceService {
+message SetResourceRequest {
+    string ResourcePath = 1;
+    bytes Resource = 2;
+}
+
+message SetResourceResponse {
+    bytes Response = 1;
+}
+
+service ResourceService {
     rpc GetResource(GetResourceRequest) returns (GetResourceResponse) {};
+    rpc SetResource(SetResourceRequest) returns (SetResourceResponse) {};
 }

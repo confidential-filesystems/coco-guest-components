@@ -13,17 +13,21 @@ mod sev;
 
 mod offline_fs;
 
-use std::sync::Arc;
+use std::fmt::Write;
+use std::sync::{Arc, MutexGuard};
 
 use async_trait::async_trait;
 use lazy_static::lazy_static;
 pub use resource_uri::ResourceUri;
 use serde::Deserialize;
 use std::fs;
+use std::ops::Deref;
 use std::path::Path;
+use std::collections::HashMap;
+use slog::KV;
 use tokio::sync::Mutex;
 
-use crate::{Annotations, Error, Getter, Result};
+use crate::{Annotations, Error, Getter, Setter, Result};
 
 const PEER_POD_CONFIG_PATH: &str = "/peerpod/daemon.json";
 
@@ -35,6 +39,34 @@ enum RealClient {
     OfflineFs(offline_fs::OfflineFsKbc),
 }
 
+lazy_static! {
+    static ref KBS_INFOS: Mutex<HashMap<String, String>> = Mutex::new({
+        let mut m = HashMap::new();
+        m.insert("kbs_url".to_string(), "http://127.0.0.1:8080".to_string());
+        m.insert("kbs_ld".to_string(), "cc_cfs_controller_2024".to_string());
+        m
+    });
+}
+
+pub async fn set_kbs_infos(kbs_url: &str, kbs_ld: &str) -> Result<()>{
+    println!("confilesystem20 println- set_kbs_infos():  kbs_url = {:?}", kbs_url);
+
+    let mut kbs_infos = KBS_INFOS.lock().await;
+    kbs_infos.insert("kbs_url".to_string(), kbs_url.to_string());
+    kbs_infos.insert("kbs_ld".to_string(), kbs_ld.to_string());
+    Ok(())
+}
+
+pub async fn get_kbs_infos() -> (String, String) {
+    let mut kbs_infos = KBS_INFOS.lock().await;
+    let kbs_url = kbs_infos.get("kbs_url").expect("fail to get kbs url");
+    let kbs_ld = kbs_infos.get("kbs_ld").expect("fail to get kbs ld");
+    println!("confilesystem20 println- get_kbs_infos():  kbs_url = {:?}", kbs_url);
+    println!("confilesystem20 println- get_kbs_infos():  kbs_ld = {:?}", kbs_ld);
+
+    (kbs_url.to_string(), kbs_ld.to_string())
+}
+
 impl RealClient {
     async fn new() -> Result<Self> {
         // Check for /peerpod/daemon.json to see if we are in a peer pod
@@ -44,9 +76,13 @@ impl RealClient {
             false => get_aa_params_from_cmdline().await?,
         };
 
+        println!("confilesystem20 println- RealClient.new():  kbc = {:?}", kbc);
+        println!("confilesystem20 println- RealClient.new():  _kbs_host = {:?}", _kbs_host);
+        let (kbs_url, kbs_ld) = get_kbs_infos().await;
+
         let c = match &kbc[..] {
             #[cfg(feature = "kbs")]
-            "cc_kbc" => RealClient::Cc(cc_kbc::CcKbc::new(&_kbs_host).await?),
+            "cc_kbc" => RealClient::Cc(cc_kbc::CcKbc::new(&kbs_url, &kbs_ld).await?),
             #[cfg(feature = "sev")]
             "online_sev_kbc" => RealClient::Sev(sev::OnlineSevKbc::new(&_kbs_host).await?),
             "offline_fs_kbc" => RealClient::OfflineFs(offline_fs::OfflineFsKbc::new().await?),
@@ -64,6 +100,8 @@ lazy_static! {
 #[async_trait]
 pub trait Kbc: Send + Sync {
     async fn get_resource(&mut self, _rid: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
+
+    async fn set_resource(&mut self, rid: ResourceUri, content: Vec<u8>) -> Result<Vec<u8>>;
 }
 
 /// A fake KbcClient to carry the [`Getter`] semantics. The real `new()`
@@ -96,6 +134,31 @@ impl Getter for KbcClient {
             #[cfg(feature = "sev")]
             RealClient::Sev(c) => c.get_resource(resource_uri, extra_credential).await,
             RealClient::OfflineFs(c) => c.get_resource(resource_uri, extra_credential).await,
+        }
+    }
+}
+
+#[async_trait]
+impl Setter for KbcClient {
+    async fn set_secret(&mut self, name: &str, content: Vec<u8>) -> Result<Vec<u8>> {
+        let resource_uri = ResourceUri::try_from(name)
+            .map_err(|_| Error::KbsClientError(format!("illegal kbs resource uri: {name}")))?;
+        let real_client = KBS_CLIENT.clone();
+        let mut client = real_client.lock().await;
+
+        if client.is_none() {
+            let c = RealClient::new().await?;
+            *client = Some(c);
+        }
+
+        let client = client.as_mut().expect("must be initialized");
+
+        match client {
+            #[cfg(feature = "kbs")]
+            RealClient::Cc(c) => c.set_resource(resource_uri, content).await,
+            _ => {
+                Err(Error::UnsupportedProvider("client error".to_string()))
+            }
         }
     }
 }

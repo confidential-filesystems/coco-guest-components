@@ -15,8 +15,9 @@ use tokio::{
     signal::unix::{signal, SignalKind},
 };
 use ttrpc::r#async::Server as TtrpcServer;
+use kms::plugins;
 
-use crate::api_ttrpc::create_get_resource_service;
+use crate::api_ttrpc::create_resource_service;
 
 mod api;
 mod api_ttrpc;
@@ -26,6 +27,8 @@ const DEFAULT_UNIX_SOCKET_DIR: &str = "/run/confidential-containers";
 const DEFAULT_CDH_SOCKET_ADDR: &str = "unix:///run/confidential-containers/cdh.sock";
 
 const AA_ATTESTER: &str = "all";
+const KBS_URL: &str = "http://127.0.0.1:8080";
+const KBS_LD: &str = "cc_cfs_controller_2024";
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -41,6 +44,14 @@ struct Cli {
     // aa_attester of attestation-agent
     #[arg(default_value_t = AA_ATTESTER.to_string(), short, long = "aa_attester")]
     aa_attester: String,
+
+    // kbs url
+    #[arg(default_value_t = KBS_URL.to_string(), short, long = "kbs_url")]
+    kbs_url: String,
+
+    // kbs ld
+    #[arg(default_value_t = KBS_LD.to_string(), short, long = "kbs_ld")]
+    kbs_ld: String,
 }
 
 macro_rules! ttrpc_service {
@@ -56,6 +67,9 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     //println!("cctata11 - Starting confidential-data-hub : cli.aa_attester = {:?}", cli.aa_attester);
+    plugins::kbs::set_kbs_infos(&cli.kbs_url, &cli.kbs_ld)
+        .await
+        .context("set kbs infos failed")?;
 
     if !Path::new(DEFAULT_UNIX_SOCKET_DIR).exists() {
         fs::create_dir_all(DEFAULT_UNIX_SOCKET_DIR)
@@ -64,12 +78,12 @@ async fn main() -> Result<()> {
     }
 
     let sealed_secret_service = ttrpc_service!(create_sealed_secret_service);
-    let get_resource_service = ttrpc_service!(create_get_resource_service);
+    let resource_service = ttrpc_service!(create_resource_service);
     let mut server = TtrpcServer::new()
         .bind(&cli.socket)
         .context("cannot bind cdh ttrpc service")?
         .register_service(sealed_secret_service)
-        .register_service(get_resource_service);
+        .register_service(resource_service);
 
     server.start().await?;
 

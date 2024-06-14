@@ -66,4 +66,18 @@ impl DataHub for Hub {
             .map_err(|e| Error::GetResource(format!("get rersource failed: {e}")))?;
         Ok(res)
     }
+
+    async fn set_resource(&self, uri: String, resource: Vec<u8>) -> Result<Vec<u8>> {
+        // to initialize a set_resource_provider client we do not need the ProviderSettings.
+        let mut client = kms::new_setter("kbs", ProviderSettings::default())
+            .await
+            .map_err(|e| Error::SetResource(format!("create kbs client failed: {e}")))?;
+
+        // to set resource using a set_resource_provider client we do not need the Annotations.
+        let res = client
+            .set_secret(&uri, resource)
+            .await
+            .map_err(|e| Error::SetResource(format!("set rersource failed: {e}")))?;
+        Ok(res)
+    }
 }

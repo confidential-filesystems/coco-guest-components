@@ -26,6 +26,9 @@ thiserror.workspace = true
 tokio = { workspace = true, features = [ "rt-multi-thread", "macros" ] }
 ttrpc = { workspace = true, features = ["async"], optional = true }
 attester = { path = "../../attestation-agent/attester", default-features = false }
+slog = "2.5.2"
+slog-scope = "4.1.2"
+slog-term = "2.9.0"
 
 [build-dependencies]
 ttrpc-codegen = { workspace = true, optional = true }

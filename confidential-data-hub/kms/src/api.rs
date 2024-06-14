@@ -68,7 +68,9 @@ pub trait Setter: Send + Sync {
     /// Set secret. The `content` will be inserted with the key `name`.
     ///
     /// The returned [`Annotations`] is the parameters of the set operation.
-    async fn set_secret(&mut self, _content: Vec<u8>, _name: String) -> Result<Annotations>;
+    //async fn set_secret(&mut self, _content: Vec<u8>, _name: String) -> Result<Annotations>;
+
+    async fn set_secret(&mut self, name: &str, content: Vec<u8>) -> Result<Vec<u8>>;
 }
 
 #[async_trait]

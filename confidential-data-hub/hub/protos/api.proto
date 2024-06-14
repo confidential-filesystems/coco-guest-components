@@ -27,10 +27,20 @@ message GetResourceResponse {
     bytes Resource = 1;
 }
 
+message SetResourceRequest {
+    string ResourcePath = 1;
+    bytes Resource = 2;
+}
+
+message SetResourceResponse {
+    bytes Response = 1;
+}
+
 service SealedSecretService {
     rpc UnsealSecret(UnsealSecretInput) returns (UnsealSecretOutput) {};
 }
 
-service GetResourceService {
+service ResourceService {
     rpc GetResource(GetResourceRequest) returns (GetResourceResponse) {};
+    rpc SetResource(SetResourceRequest) returns (SetResourceResponse) {};
 }

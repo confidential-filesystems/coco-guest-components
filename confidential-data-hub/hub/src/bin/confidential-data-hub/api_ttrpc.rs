@@ -71,25 +71,30 @@ pub fn create_sealed_secret_service(service: Arc<Box<dyn SealedSecretService + S
 }
 
 #[derive(Clone)]
-pub struct GetResourceServiceClient {
+pub struct ResourceServiceClient {
     client: ::ttrpc::r#async::Client,
 }
 
-impl GetResourceServiceClient {
+impl ResourceServiceClient {
     pub fn new(client: ::ttrpc::r#async::Client) -> Self {
-        GetResourceServiceClient {
+        ResourceServiceClient {
             client,
         }
     }
 
     pub async fn get_resource(&self, ctx: ttrpc::context::Context, req: &super::api::GetResourceRequest) -> ::ttrpc::Result<super::api::GetResourceResponse> {
         let mut cres = super::api::GetResourceResponse::new();
-        ::ttrpc::async_client_request!(self, ctx, req, "api.GetResourceService", "GetResource", cres);
+        ::ttrpc::async_client_request!(self, ctx, req, "api.ResourceService", "GetResource", cres);
+    }
+
+    pub async fn set_resource(&self, ctx: ttrpc::context::Context, req: &super::api::SetResourceRequest) -> ::ttrpc::Result<super::api::SetResourceResponse> {
+        let mut cres = super::api::SetResourceResponse::new();
+        ::ttrpc::async_client_request!(self, ctx, req, "api.ResourceService", "SetResource", cres);
     }
 }
 
 struct GetResourceMethod {
-    service: Arc<Box<dyn GetResourceService + Send + Sync>>,
+    service: Arc<Box<dyn ResourceService + Send + Sync>>,
 }
 
 #[async_trait]
@@ -99,14 +104,28 @@ impl ::ttrpc::r#async::MethodHandler for GetResourceMethod {
     }
 }
 
+struct SetResourceMethod {
+    service: Arc<Box<dyn ResourceService + Send + Sync>>,
+}
+
 #[async_trait]
-pub trait GetResourceService: Sync {
-    async fn get_resource(&self, _ctx: &::ttrpc::r#async::TtrpcContext, _: super::api::GetResourceRequest) -> ::ttrpc::Result<super::api::GetResourceResponse> {
-        Err(::ttrpc::Error::RpcStatus(::ttrpc::get_status(::ttrpc::Code::NOT_FOUND, "/api.GetResourceService/GetResource is not supported".to_string())))
+impl ::ttrpc::r#async::MethodHandler for SetResourceMethod {
+    async fn handler(&self, ctx: ::ttrpc::r#async::TtrpcContext, req: ::ttrpc::Request) -> ::ttrpc::Result<::ttrpc::Response> {
+        ::ttrpc::async_request_handler!(self, ctx, req, api, SetResourceRequest, set_resource);
     }
 }
 
-pub fn create_get_resource_service(service: Arc<Box<dyn GetResourceService + Send + Sync>>) -> HashMap<String, ::ttrpc::r#async::Service> {
+#[async_trait]
+pub trait ResourceService: Sync {
+    async fn get_resource(&self, _ctx: &::ttrpc::r#async::TtrpcContext, _: super::api::GetResourceRequest) -> ::ttrpc::Result<super::api::GetResourceResponse> {
+        Err(::ttrpc::Error::RpcStatus(::ttrpc::get_status(::ttrpc::Code::NOT_FOUND, "/api.ResourceService/GetResource is not supported".to_string())))
+    }
+    async fn set_resource(&self, _ctx: &::ttrpc::r#async::TtrpcContext, _: super::api::SetResourceRequest) -> ::ttrpc::Result<super::api::SetResourceResponse> {
+        Err(::ttrpc::Error::RpcStatus(::ttrpc::get_status(::ttrpc::Code::NOT_FOUND, "/api.ResourceService/SetResource is not supported".to_string())))
+    }
+}
+
+pub fn create_resource_service(service: Arc<Box<dyn ResourceService + Send + Sync>>) -> HashMap<String, ::ttrpc::r#async::Service> {
     let mut ret = HashMap::new();
     let mut methods = HashMap::new();
     let streams = HashMap::new();
@@ -114,6 +133,9 @@ pub fn create_get_resource_service(service: Arc<Box<dyn GetResourceService + Sen
     methods.insert("GetResource".to_string(),
                     Box::new(GetResourceMethod{service: service.clone()}) as Box<dyn ::ttrpc::r#async::MethodHandler + Send + Sync>);
 
-    ret.insert("api.GetResourceService".to_string(), ::ttrpc::r#async::Service{ methods, streams });
+    methods.insert("SetResource".to_string(),
+                    Box::new(SetResourceMethod{service: service.clone()}) as Box<dyn ::ttrpc::r#async::MethodHandler + Send + Sync>);
+
+    ret.insert("api.ResourceService".to_string(), ::ttrpc::r#async::Service{ methods, streams });
     ret
 }

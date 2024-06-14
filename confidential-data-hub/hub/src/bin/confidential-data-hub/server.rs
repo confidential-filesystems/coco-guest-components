@@ -14,8 +14,8 @@ use tokio::sync::RwLock;
 use ttrpc::{asynchronous::TtrpcContext, Code, Error, Status};
 
 use crate::{
-    api::{GetResourceRequest, GetResourceResponse, UnsealSecretInput, UnsealSecretOutput},
-    api_ttrpc::{GetResourceService, SealedSecretService},
+    api::{GetResourceRequest, GetResourceResponse, SetResourceRequest, SetResourceResponse, UnsealSecretInput, UnsealSecretOutput},
+    api_ttrpc::{ResourceService, SealedSecretService},
 };
 
 lazy_static! {
@@ -67,7 +67,7 @@ impl SealedSecretService for Server {
 }
 
 #[async_trait]
-impl GetResourceService for Server {
+impl ResourceService for Server {
     async fn get_resource(
         &self,
         _ctx: &TtrpcContext,
@@ -101,6 +101,28 @@ impl GetResourceService for Server {
         let mut reply = GetResourceResponse::new();
         reply.Resource = resource;
         debug!("send back the resource");
+        Ok(reply)
+    }
+
+    async fn set_resource(
+        &self,
+        _ctx: &TtrpcContext,
+        req: SetResourceRequest,
+    ) -> ::ttrpc::Result<SetResourceResponse> {
+        debug!("set new SetResource request");
+        let reader = HUB.read().await;
+        let reader = reader.as_ref().expect("must be initialized");
+
+        let response = reader.set_resource(req.ResourcePath, req.Resource).await.map_err(|e| {
+            let mut status = Status::new();
+            status.set_code(Code::INTERNAL);
+            status.set_message(format!("[CDH] [ERROR]: Set Resource failed: {e}"));
+            Error::RpcStatus(status)
+        })?;
+
+        let mut reply = SetResourceResponse::new();
+        reply.Response = response;
+        debug!("send back the response");
         Ok(reply)
     }
 }

@@ -12,14 +12,23 @@ use kbs_protocol::{
 
 use crate::{Error, Result};
 
-use super::Kbc;
+use super::{Kbc};
+
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
 
 pub struct CcKbc {
     client: KbsProtocolClient<Box<dyn TokenProvider>>,
+    kbs_url: String,
+    kbs_ld: String,
 }
 
 impl CcKbc {
-    pub async fn new(kbs_host_url: &str) -> Result<Self> {
+    pub async fn new(kbs_host_url: &str, kbs_ld: &str) -> Result<Self> {
+        println!("confilesystem20 println- cdh.kms.CcKbc.new():  kbs_host_url = {:?}", kbs_host_url);
+        println!("confilesystem20 println- cdh.kms.CcKbc.new():  kbs_ld = {:?}", kbs_ld);
+
         let token_provider = AATokenProvider::new()
             .await
             .map_err(|e| Error::KbsClientError(format!("create AA token provider failed: {e}")))?;
@@ -29,7 +38,11 @@ impl CcKbc {
         )
         .build()
         .map_err(|e| Error::KbsClientError(format!("create kbs client failed: {e}")))?;
-        Ok(Self { client })
+        Ok(Self {
+            client,
+            kbs_url: kbs_host_url.to_string(),
+            kbs_ld: kbs_ld.to_string(),
+        })
     }
 }
 
@@ -42,5 +55,19 @@ impl Kbc for CcKbc {
             .await
             .map_err(|e| Error::KbsClientError(format!("get resource failed: {e}")))?;
         Ok(secret)
+    }
+
+    async fn set_resource(&mut self, rid: ResourceUri, content: Vec<u8>) -> Result<Vec<u8>> {
+        log::info!("confilesystem20 - cdh.kms.CcKbc.set_resource():  rid = {:?}, content.len() = {:?}",
+            rid, content.len());
+        println!("confilesystem20 println- cdh.kms.CcKbc.set_resource():  rid = {:?}, content.len() = {:?}",
+            rid, content.len());
+        slog::info!(sl(), "confilesystem20 slog- cdh.kms.CcKbc.set_resource():  rid = {:?}, content.len() = {:?}",
+            rid, content.len());
+        println!("confilesystem20 println- cdh.kms.CcKbc.set_resource():  self.kbs_url = {:?}", self.kbs_url);
+        println!("confilesystem20 println- cdh.kms.CcKbc.set_resource():  self.kbs_ld = {:?}", self.kbs_ld);
+
+        //1TODO
+        Ok(content)
     }
 }

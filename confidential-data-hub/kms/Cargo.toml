@@ -35,6 +35,9 @@ uuid = { workspace = true, features = ["serde", "v4"], optional = true }
 yasna = { version = "0.5.2", optional = true }
 zeroize = { workspace = true, optional = true }
 attester = { path = "../../attestation-agent/attester", default-features = false }
+slog = "2.5.2"
+slog-scope = "4.1.2"
+slog-term = "2.9.0"
 
 [dev-dependencies]
 rstest.workspace = true

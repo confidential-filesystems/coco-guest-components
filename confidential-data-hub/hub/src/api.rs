@@ -26,4 +26,6 @@ pub trait DataHub {
     /// URI is defined in
     /// <https://github.com/confidential-containers/guest-components/blob/main/attestation-agent/docs/KBS_URI.md>
     async fn get_resource(&self, uri: String, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
+
+    async fn set_resource(&self, uri: String, resource: Vec<u8>) -> Result<Vec<u8>>;
 }

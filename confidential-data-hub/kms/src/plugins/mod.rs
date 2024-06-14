@@ -5,7 +5,7 @@
 
 use strum::{AsRefStr, EnumString};
 
-use crate::{Decrypter, Error, Getter, ProviderSettings, Result};
+use crate::{Decrypter, Error, Getter, Setter, ProviderSettings, Result};
 
 const _IN_GUEST_DEFAULT_KEY_PATH: &str = "/run/confidential-containers/cdh/kms-credential";
 
@@ -52,5 +52,17 @@ pub async fn new_getter(
         .map_err(|_| Error::UnsupportedProvider(provider_name.to_string()))?;
     match provider {
         VaultProvider::Kbs => Ok(Box::new(kbs::KbcClient::new().await?) as Box<dyn Getter>),
+    }
+}
+
+/// Create a new [`Setter`] by given provider name and [`ProviderSettings`]
+pub async fn new_setter(
+    provider_name: &str,
+    _provider_settings: ProviderSettings,
+) -> Result<Box<dyn Setter>> {
+    let provider = VaultProvider::try_from(provider_name)
+        .map_err(|_| Error::UnsupportedProvider(provider_name.to_string()))?;
+    match provider {
+        VaultProvider::Kbs => Ok(Box::new(kbs::KbcClient::new().await?) as Box<dyn Setter>),
     }
 }
