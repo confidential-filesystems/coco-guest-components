@@ -6,13 +6,16 @@ publish = false
 edition = "2021"
 
 [dependencies]
+aes-gcm = { workspace = true }
 anyhow.workspace = true
+base64.workspace = true
+rand.workspace = true
+rsa = { workspace = true }
+kbs-types.workspace = true
 async-trait.workspace = true
 attester = { path = "../attester", default-features = false }
-base64.workspace = true
 crypto = { path = "../deps/crypto", default-features = false }
 jwt-simple.workspace = true
-kbs-types.workspace = true
 log.workspace = true
 protobuf = { workspace = true, optional = true}
 reqwest = { workspace = true, features = ["cookies", "json"], optional = true }

@@ -27,7 +27,7 @@ const DEFAULT_UNIX_SOCKET_DIR: &str = "/run/confidential-containers";
 const DEFAULT_CDH_SOCKET_ADDR: &str = "unix:///run/confidential-containers/cdh.sock";
 
 const AA_ATTESTER: &str = "all";
-const KBS_URL: &str = "http://127.0.0.1:8080";
+const KBS_URL: &str = "http://10.11.35.45:31111"; // "http://127.0.0.1:8080";
 const KBS_LD: &str = "cc_cfs_controller_2024";
 
 #[derive(Debug, Parser)]

@@ -77,6 +77,7 @@ pub mod error;
 pub mod evidence_provider;
 pub mod keypair;
 pub mod token_provider;
+pub mod jwe;
 
 pub use api::*;
 pub use builder::KbsClientBuilder;

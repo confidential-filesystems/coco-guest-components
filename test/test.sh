@@ -27,7 +27,7 @@ curl -X GET \
 curl -X POST \
 	-w "%{http_code}\n" \
 	--data '{"controller_crp_token":"", "controller_attestation_report":"", "controller_cert_chain":"", "aa_attester":"controller", "container_name":""}' \
-	http://127.0.0.1:8006/cdh/resource_extra/0xac0618f0b105faf17b8e1370f98febdb2e1ffc5b/ecsk/123
+	http://127.0.0.1:8006/cdh/resource_extra/0xac0618f0b105faf17b8e1370f98febdb2e1ffc5b/seeds/seeds
 
 
 curl -X GET \

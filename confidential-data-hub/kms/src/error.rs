@@ -18,4 +18,7 @@ pub enum Error {
 
     #[error("Unsupported provider: {0}")]
     UnsupportedProvider(String),
+
+    #[error("Set resource error: {0}")]
+    SetResourceError(String),
 }
