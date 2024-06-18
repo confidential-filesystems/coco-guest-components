@@ -15,9 +15,9 @@ impl Hub {
         sev::mount_security_fs().map_err(|e| {
             Error::InitializationFailed(format!("sev mount security fs failed: {e}"))
         })?;
-        let _secret_module = sev::SecretKernelModule::new().map_err(|e| {
-            Error::InitializationFailed(format!("sev create SecretKernelModule failed: {e}"))
-        })?;
+        //let _secret_module = sev::SecretKernelModule::new().map_err(|e| {
+        //    Error::InitializationFailed(format!("sev create SecretKernelModule failed: {e}"))
+        //})?;
         Ok(())
     }
 }

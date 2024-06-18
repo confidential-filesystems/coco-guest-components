@@ -12,6 +12,8 @@ mod cc_kbc;
 mod sev;
 
 mod offline_fs;
+pub mod resource;
+pub mod verifier;
 
 use std::fmt::Write;
 use std::sync::{Arc, MutexGuard};
@@ -44,27 +46,37 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert("kbs_url".to_string(), "http://127.0.0.1:8080".to_string());
         m.insert("kbs_ld".to_string(), "cc_cfs_controller_2024".to_string());
+        m.insert("kbs_is_emulated".to_string(), "true".to_string());
         m
     });
 }
 
-pub async fn set_kbs_infos(kbs_url: &str, kbs_ld: &str) -> Result<()>{
-    println!("confilesystem20 println- set_kbs_infos():  kbs_url = {:?}", kbs_url);
+pub async fn set_kbs_infos(kbs_url: &str, kbs_ld: &str, kbs_is_emulated: &str) -> Result<()>{
+    println!("confilesystem20 println- set_kbs_infos():  kbs_url = {:?}, kbs_is_emulated = {:?}",
+             kbs_url, kbs_is_emulated);
 
     let mut kbs_infos = KBS_INFOS.lock().await;
     kbs_infos.insert("kbs_url".to_string(), kbs_url.to_string());
     kbs_infos.insert("kbs_ld".to_string(), kbs_ld.to_string());
+    kbs_infos.insert("kbs_is_emulated".to_string(), kbs_is_emulated.to_string());
     Ok(())
 }
 
-pub async fn get_kbs_infos() -> (String, String) {
+pub async fn get_kbs_infos() -> anyhow::Result<cc_kbc::KBSInfos> {
     let mut kbs_infos = KBS_INFOS.lock().await;
-    let kbs_url = kbs_infos.get("kbs_url").expect("fail to get kbs url");
-    let kbs_ld = kbs_infos.get("kbs_ld").expect("fail to get kbs ld");
+    let kbs_url = kbs_infos.get("kbs_url").expect("get kbs url error");
     println!("confilesystem20 println- get_kbs_infos():  kbs_url = {:?}", kbs_url);
+    let kbs_ld = kbs_infos.get("kbs_ld").expect("get kbs ld error");
     println!("confilesystem20 println- get_kbs_infos():  kbs_ld = {:?}", kbs_ld);
+    let kbs_is_emulated = kbs_infos.get("kbs_is_emulated").expect("get kbs is_emulated error");
+    println!("confilesystem20 println- get_kbs_infos():  kbs_is_emulated = {:?}", kbs_is_emulated);
 
-    (kbs_url.to_string(), kbs_ld.to_string())
+    let kbs_infos = cc_kbc::KBSInfos {
+        kbs_url: kbs_url.to_string(),
+        kbs_ld: kbs_ld.to_string(),
+        kbs_is_emulated: kbs_is_emulated.to_string() == "true".to_string(),
+    };
+    Ok(kbs_infos)
 }
 
 impl RealClient {
@@ -78,11 +90,15 @@ impl RealClient {
 
         println!("confilesystem20 println- RealClient.new():  kbc = {:?}", kbc);
         println!("confilesystem20 println- RealClient.new():  _kbs_host = {:?}", _kbs_host);
-        let (kbs_url, kbs_ld) = get_kbs_infos().await;
+        let kbs_infos = get_kbs_infos()
+            .await
+            .map_err(|e| Error::KbsClientError(format!("get kbs infos failed: {e}")))?;
+
+        println!("confilesystem20 println- RealClient.new():  kbs_infos = {:?}", kbs_infos);
 
         let c = match &kbc[..] {
             #[cfg(feature = "kbs")]
-            "cc_kbc" => RealClient::Cc(cc_kbc::CcKbc::new(&kbs_url, &kbs_ld).await?),
+            "cc_kbc" => RealClient::Cc(cc_kbc::CcKbc::new(&kbs_infos).await?),
             #[cfg(feature = "sev")]
             "online_sev_kbc" => RealClient::Sev(sev::OnlineSevKbc::new(&_kbs_host).await?),
             "offline_fs_kbc" => RealClient::OfflineFs(offline_fs::OfflineFsKbc::new().await?),

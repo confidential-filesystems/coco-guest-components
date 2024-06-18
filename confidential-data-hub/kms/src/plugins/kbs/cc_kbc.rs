@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use async_trait::async_trait;
 use kbs_protocol::{
     client::KbsClient as KbsProtocolClient,
@@ -13,36 +13,45 @@ use kbs_protocol::{
 
 use crate::{Error, Result};
 
-use super::{Kbc};
+use super::{Kbc, verifier};
 
 fn sl() -> slog::Logger {
     slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
 }
 
+#[derive(Debug)]
+pub struct KBSInfos {
+    pub kbs_url: String,
+    pub kbs_ld: String,
+    pub kbs_is_emulated: bool,
+}
+
 pub struct CcKbc {
     client: KbsProtocolClient<Box<dyn TokenProvider>>,
-    kbs_url: String,
-    kbs_ld: String,
+    kbs_infos: KBSInfos,
 }
 
 impl CcKbc {
-    pub async fn new(kbs_host_url: &str, kbs_ld: &str) -> Result<Self> {
-        println!("confilesystem20 println- cdh.kms.CcKbc.new():  kbs_host_url = {:?}", kbs_host_url);
-        println!("confilesystem20 println- cdh.kms.CcKbc.new():  kbs_ld = {:?}", kbs_ld);
+    pub async fn new(kbs_infos: &KBSInfos) -> Result<Self> {
+        println!("confilesystem20 println- cdh.kms.CcKbc.new():  kbs_infos.kbs_url = {:?}", kbs_infos.kbs_url);
+        println!("confilesystem20 println- cdh.kms.CcKbc.new():  kbs_infos.kbs_ld = {:?}", kbs_infos.kbs_ld);
 
         let token_provider = AATokenProvider::new()
             .await
             .map_err(|e| Error::KbsClientError(format!("create AA token provider failed: {e}")))?;
         let client = kbs_protocol::KbsClientBuilder::with_token_provider(
             Box::new(token_provider),
-            kbs_host_url,
+            &kbs_infos.kbs_url,
         )
         .build()
         .map_err(|e| Error::KbsClientError(format!("create kbs client failed: {e}")))?;
         Ok(Self {
             client,
-            kbs_url: kbs_host_url.to_string(),
-            kbs_ld: kbs_ld.to_string(),
+            kbs_infos: KBSInfos{
+                kbs_url: kbs_infos.kbs_url.clone(),
+                kbs_ld: kbs_infos.kbs_ld.clone(),
+                kbs_is_emulated: kbs_infos.kbs_is_emulated,
+            },
         })
     }
 }
@@ -65,10 +74,10 @@ impl Kbc for CcKbc {
             rid, content.len());
         slog::info!(sl(), "confilesystem20 slog- cdh.kms.CcKbc.set_resource():  rid = {:?}, content.len() = {:?}",
             rid, content.len());
-        println!("confilesystem20 println- cdh.kms.CcKbc.set_resource():  self.kbs_url = {:?}", self.kbs_url);
-        println!("confilesystem20 println- cdh.kms.CcKbc.set_resource():  self.kbs_ld = {:?}", self.kbs_ld);
+        println!("confilesystem20 println- cdh.kms.CcKbc.set_resource():  self.kbs_infos.kbs_url = {:?}", self.kbs_infos.kbs_url);
+        println!("confilesystem20 println- cdh.kms.CcKbc.set_resource():  self.kbs_infos.kbs_ld = {:?}", self.kbs_infos.kbs_ld);
 
-        let set_rsp = set_resource(&self.kbs_url, &rid.resource_path(), content)
+        let set_rsp = set_resource(&self.kbs_infos.kbs_url, &rid.resource_path(), content, &self.kbs_infos.kbs_ld, self.kbs_infos.kbs_is_emulated)
             .await
             .map_err(|e| Error::SetResourceError(format!("set resource failed: {e}")))?;;
 
@@ -78,8 +87,10 @@ impl Kbc for CcKbc {
 }
 
 // util apis
-use kbs_types::{TeePubKey};
+use kbs_types::{Attestation, TeePubKey};
 use serde::{Serialize, Deserialize};
+use crate::plugins::kbs::resource::local_fs::{LocalFsRepoDesc, LocalFs};
+//use attestation_service::{config::Config as AsConfig, AttestationService};
 
 const KBS_URL_PREFIX: &str = "kbs/v0";
 
@@ -98,6 +109,8 @@ pub async fn set_resource(
     url: &str,
     path: &str,
     resource_bytes: Vec<u8>,
+    kbs_ld: &str,
+    kbs_is_emulated: bool,
     //challenge: &str,
     //auth_key: String,
     //kbs_root_certs_pem: Vec<String>,
@@ -145,6 +158,28 @@ pub async fn set_resource(
     println!("confilesystem20 println- set_resource(): kbs_types::Tee::Challenge = {:?}", kbs_types::Tee::Challenge);
 
     //TODO:  verify evidence
+    /*
+    let as_config = AsConfig::default();
+    let attestation_service_native = AttestationService::new(as_config.clone())?;
+    let as_evaluate_rsp = attestation_service_native.evaluate(evidence.tee_type, challenge, evidence.evidence)
+        .await?;
+    println!("confilesystem20 println- set_resource(): as_evaluate_rsp = {:?}", as_evaluate_rsp);
+    */
+    let tee_type = i32_to_tee(evidence.tee_type)?;
+    let tee_verifier = verifier::to_verifier(&tee_type)?;
+    //let attestation = serde_json::from_slice::<Attestation>(evidence.evidence.as_slice())
+    //    .context("Failed to deserialize Attestation")?;
+    let evidence_string = String::from_utf8(evidence.evidence)?;
+    let attestation = Attestation {
+        tee_pubkey: evidence.tee_pubkey.clone(),
+        tee_evidence: evidence_string,
+    };
+    //let repository = LocalFs::new(&LocalFsRepoDesc::default())?;
+    let repository = Box::new(LocalFs::new(&LocalFsRepoDesc::default())?) as Box<dyn crate::plugins::kbs::resource::Repository + Send + Sync>;
+    let evaluate_result = tee_verifier.evaluate(challenge.to_string(), &attestation, &repository)
+        .await
+        .map_err(|e| anyhow!("Verifier evaluate failed: {e:?}"))?;
+    println!("confilesystem20 println- set_resource(): evidence.evaluate_result = {:?}", evaluate_result);
 
     let jwe = kbs_protocol::jwe::jwe(evidence.tee_pubkey, resource_bytes)?;
     let resource_bytes_ciphertext = serde_json::to_vec(&jwe)?;
@@ -186,3 +221,19 @@ fn build_http_client(kbs_root_certs_pem: Vec<String>) -> anyhow::Result<reqwest:
         .map_err(|e| anyhow!("Build KBS http client failed: {:?}", e))
 }
 
+fn i32_to_tee(tee_i32: i32) -> anyhow::Result<kbs_types::Tee> {
+    let tee_type = match tee_i32 {
+        0 => { kbs_types::Tee::AzSnpVtpm },
+        1 => { kbs_types::Tee::Sev },
+        2 => { kbs_types::Tee::Sgx },
+        3 => { kbs_types::Tee::Snp },
+        4 => { kbs_types::Tee::Tdx },
+        5 => { kbs_types::Tee::Cca },
+        6 => { kbs_types::Tee::Csv },
+        7 => { kbs_types::Tee::Sample },
+        8 => { kbs_types::Tee::Challenge },
+        _ => { return Err(bail!("tee type error: {:?}", tee_i32)); }
+    };
+
+    Ok(tee_type)
+}

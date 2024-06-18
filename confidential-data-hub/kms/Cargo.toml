@@ -9,7 +9,7 @@ edition = "2021"
 anyhow.workspace = true
 async-trait.workspace = true
 base64.workspace = true
-bincode = { workspace = true, optional = true }
+bincode = { workspace = true }
 chrono = { workspace = true, optional = true }
 const_format.workspace = true
 crypto = { path = "../../attestation-agent/deps/crypto", optional = true }
@@ -24,7 +24,7 @@ resource_uri = { path = "../../attestation-agent/deps/resource_uri" }
 sha2 = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
-sev = { path = "../../attestation-agent/deps/sev", optional = true }
+#sev = { path = "../../attestation-agent/deps/sev", optional = true }
 strum.workspace = true
 reqwest = { version = "0.11", optional = true }
 thiserror.workspace = true
@@ -40,6 +40,16 @@ slog-term = "2.9.0"
 attester = { path = "../../attestation-agent/attester", default-features = false }
 kbs-types = { path = "../../../virtee-kbs-types"}
 #kbs = { path = "../../../coco-trustee"}
+#as-types = {path = "../../../coco-attestation-service/as-types"}
+#attestation-service = { path = "../../../coco-attestation-service/attestation-service", default-features = false, optional = true }
+#attestation-service = { path = "../../../coco-attestation-service/attestation-service" }
+strum_macros = "0.24.0"
+cfg-if = "1.0.0"
+jwt-simple = "0.11.6"
+x509-parser = { version = "0.14.0", optional = true }
+asn1-rs = { version = "0.5.1", optional = true }
+#sev = { version = "1.2.0", features = ["openssl", "snp"], optional = true }
+sev = "1.2.0"
 
 [dev-dependencies]
 rstest.workspace = true
@@ -54,4 +64,6 @@ default = ["aliyun", "kbs"]
 
 aliyun = ["chrono", "hex", "openssl", "p12", "prost", "reqwest/rustls-tls", "sha2", "tonic", "yasna"]
 kbs = ["kbs_protocol"]
-sev = ["bincode", "crypto", "dep:sev", "prost", "tonic", "uuid", "zeroize"]
+#snp-verifier = [ "asn1-rs", "openssl", "sev", "x509-parser" ]
+snp-verifier = [ "asn1-rs", "openssl", "x509-parser" ]
+#sev = ["bincode", "crypto", "dep:sev", "prost", "tonic", "uuid", "zeroize"]
