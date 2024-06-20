@@ -85,7 +85,7 @@ impl SignScheme for SimpleParameters {
     async fn init(&mut self, config: &Paths, ie_data: &crate::extra::token::InternalExtraData) -> Result<()> {
         prepare_runtime_dirs(crate::config::SIG_STORE_CONFIG_DIR).await?;
         self.initialize_sigstore_config().await?;
-        let sig_store_config_file = crate::resource::get_resource(&config.sigstore_config, ie_data).await;
+        let sig_store_config_file = crate::resource::get_resource(&config.sigstore_config, ie_data, "extra-request-SimpleParameters.init").await;
 
         #[cfg(feature = "signature-simple-xrss")]
         if sig_store_config_file.is_err() {
@@ -123,7 +123,7 @@ impl SignScheme for SimpleParameters {
             (Some(_), Some(_)) => bail!("Both keyPath and keyData specified."),
             (None, Some(key_data)) => base64::engine::general_purpose::STANDARD.decode(key_data)?,
             (Some(key_path), None) => {
-                crate::resource::get_resource(key_path, ie_data).await.map_err(|e| {
+                crate::resource::get_resource(key_path, ie_data, "extra-request-allows_image").await.map_err(|e| {
                     anyhow!("Read SignedBy keyPath failed: {:?}, path: {}", e, key_path)
                 })?
             }

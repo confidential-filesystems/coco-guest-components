@@ -79,16 +79,16 @@ impl ResourceService for Server {
 
         let extra_credential_proto = &req.ExtraCredential.unwrap();
         log::info!("confilesystem6 - CDH-Service - ttrpc.get_resource(): extra_credential_proto.ControllerCrpToken.len() = {:?}, \
-                extra_credential_proto.AAAttester = {:?}, extra_credential_proto.ContainerName = {:?}",
+                extra_credential_proto.AAAttester = {:?}, extra_credential_proto.ExtraRequest = {:?}",
                 extra_credential_proto.ControllerCrpToken.len(),
                 extra_credential_proto.AAAttester,
-                extra_credential_proto.ContainerName);
+                extra_credential_proto.ExtraRequest);
         let extra_credential = attester::extra_credential::ExtraCredential::new(
             extra_credential_proto.ControllerCrpToken.clone(),
             extra_credential_proto.ControllerAttestationReport.clone(),
             extra_credential_proto.ControllerCertChain.clone(),
             extra_credential_proto.AAAttester.clone(),
-            extra_credential_proto.ContainerName.clone(),
+            extra_credential_proto.ExtraRequest.clone(),
         );
 
         let resource = reader.get_resource(req.ResourcePath, &extra_credential).await.map_err(|e| {

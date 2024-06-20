@@ -45,6 +45,7 @@ impl Client for Ttrpc {
         resource_path: &str,
         kbs_uri: &str,
         ie_data: &crate::extra::token::InternalExtraData,
+        extra_request: &str,
     ) -> Result<Vec<u8>> {
         slog::info!(sl(), "confilesystem2 - Client - Ttrpc.get_resource(): kbc_name = {:?}, resource_path = {:?}, kbs_uri = {:?}",
             kbc_name, resource_path, kbs_uri);
@@ -57,7 +58,7 @@ impl Client for Ttrpc {
             ie_data.controller_attestation_report.clone(),
             ie_data.controller_cert_chain.clone(),
             ie_data.aa_attester.clone(),
-            ie_data.container_name.clone()).to_string().expect("confilesystem7 - fail to get extra credential");
+            extra_request.to_string()).to_string().expect("confilesystem7 - fail to get extra credential");
         let req = GetResourceRequest {
             KbcName: kbc_name.to_string(),
             ResourcePath: resource_path.to_string(),

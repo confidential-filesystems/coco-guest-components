@@ -281,8 +281,8 @@ pub struct ExtraCredential {
     pub ControllerCertChain: ::std::string::String,
     // @@protoc_insertion_point(field:api.ExtraCredential.AAAttester)
     pub AAAttester: ::std::string::String,
-    // @@protoc_insertion_point(field:api.ExtraCredential.ContainerName)
-    pub ContainerName: ::std::string::String,
+    // @@protoc_insertion_point(field:api.ExtraCredential.ExtraRequest)
+    pub ExtraRequest: ::std::string::String,
     // special fields
     // @@protoc_insertion_point(special_field:api.ExtraCredential.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -323,9 +323,9 @@ impl ExtraCredential {
             |m: &mut ExtraCredential| { &mut m.AAAttester },
         ));
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
-            "ContainerName",
-            |m: &ExtraCredential| { &m.ContainerName },
-            |m: &mut ExtraCredential| { &mut m.ContainerName },
+            "ExtraRequest",
+            |m: &ExtraCredential| { &m.ExtraRequest },
+            |m: &mut ExtraCredential| { &mut m.ExtraRequest },
         ));
         ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<ExtraCredential>(
             "ExtraCredential",
@@ -358,7 +358,7 @@ impl ::protobuf::Message for ExtraCredential {
                     self.AAAttester = is.read_string()?;
                 },
                 42 => {
-                    self.ContainerName = is.read_string()?;
+                    self.ExtraRequest = is.read_string()?;
                 },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
@@ -384,8 +384,8 @@ impl ::protobuf::Message for ExtraCredential {
         if !self.AAAttester.is_empty() {
             my_size += ::protobuf::rt::string_size(4, &self.AAAttester);
         }
-        if !self.ContainerName.is_empty() {
-            my_size += ::protobuf::rt::string_size(5, &self.ContainerName);
+        if !self.ExtraRequest.is_empty() {
+            my_size += ::protobuf::rt::string_size(5, &self.ExtraRequest);
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
@@ -405,8 +405,8 @@ impl ::protobuf::Message for ExtraCredential {
         if !self.AAAttester.is_empty() {
             os.write_string(4, &self.AAAttester)?;
         }
-        if !self.ContainerName.is_empty() {
-            os.write_string(5, &self.ContainerName)?;
+        if !self.ExtraRequest.is_empty() {
+            os.write_string(5, &self.ExtraRequest)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -429,7 +429,7 @@ impl ::protobuf::Message for ExtraCredential {
         self.ControllerAttestationReport.clear();
         self.ControllerCertChain.clear();
         self.AAAttester.clear();
-        self.ContainerName.clear();
+        self.ExtraRequest.clear();
         self.special_fields.clear();
     }
 
@@ -439,7 +439,7 @@ impl ::protobuf::Message for ExtraCredential {
             ControllerAttestationReport: ::std::string::String::new(),
             ControllerCertChain: ::std::string::String::new(),
             AAAttester: ::std::string::String::new(),
-            ContainerName: ::std::string::String::new(),
+            ExtraRequest: ::std::string::String::new(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -1253,16 +1253,16 @@ impl ::protobuf::reflect::ProtobufValue for DeleteResourceResponse {
 static file_descriptor_proto_data: &'static [u8] = b"\
     \n\tapi.proto\x12\x03api\"+\n\x11UnsealSecretInput\x12\x16\n\x06secret\
     \x18\x01\x20\x01(\x0cR\x06secret\"2\n\x12UnsealSecretOutput\x12\x1c\n\tp\
-    laintext\x18\x01\x20\x01(\x0cR\tplaintext\"\xfb\x01\n\x0fExtraCredential\
+    laintext\x18\x01\x20\x01(\x0cR\tplaintext\"\xf9\x01\n\x0fExtraCredential\
     \x12.\n\x12ControllerCrpToken\x18\x01\x20\x01(\tR\x12ControllerCrpToken\
     \x12@\n\x1bControllerAttestationReport\x18\x02\x20\x01(\tR\x1bController\
     AttestationReport\x120\n\x13ControllerCertChain\x18\x03\x20\x01(\tR\x13C\
     ontrollerCertChain\x12\x1e\n\nAAAttester\x18\x04\x20\x01(\tR\nAAAttester\
-    \x12$\n\rContainerName\x18\x05\x20\x01(\tR\rContainerName\"x\n\x12GetRes\
-    ourceRequest\x12\"\n\x0cResourcePath\x18\x01\x20\x01(\tR\x0cResourcePath\
-    \x12>\n\x0fExtraCredential\x18\x02\x20\x01(\x0b2\x14.api.ExtraCredential\
-    R\x0fExtraCredential\"1\n\x13GetResourceResponse\x12\x1a\n\x08Resource\
-    \x18\x01\x20\x01(\x0cR\x08Resource\"T\n\x12SetResourceRequest\x12\"\n\
+    \x12\"\n\x0cExtraRequest\x18\x05\x20\x01(\tR\x0cExtraRequest\"x\n\x12Get\
+    ResourceRequest\x12\"\n\x0cResourcePath\x18\x01\x20\x01(\tR\x0cResourceP\
+    ath\x12>\n\x0fExtraCredential\x18\x02\x20\x01(\x0b2\x14.api.ExtraCredent\
+    ialR\x0fExtraCredential\"1\n\x13GetResourceResponse\x12\x1a\n\x08Resourc\
+    e\x18\x01\x20\x01(\x0cR\x08Resource\"T\n\x12SetResourceRequest\x12\"\n\
     \x0cResourcePath\x18\x01\x20\x01(\tR\x0cResourcePath\x12\x1a\n\x08Resour\
     ce\x18\x02\x20\x01(\x0cR\x08Resource\"1\n\x13SetResourceResponse\x12\x1a\
     \n\x08Response\x18\x01\x20\x01(\x0cR\x08Response\"W\n\x15DeleteResourceR\

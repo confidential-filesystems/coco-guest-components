@@ -37,7 +37,7 @@ lazy_static::lazy_static! {
 /// - `get_resource()`: get resource from the uri
 #[async_trait]
 trait Protocol: Send + Sync {
-    async fn get_resource(&mut self, uri: &str, ie_data: &crate::extra::token::InternalExtraData) -> Result<Vec<u8>>;
+    async fn get_resource(&mut self, uri: &str, ie_data: &crate::extra::token::InternalExtraData, extra_request: &str) -> Result<Vec<u8>>;
 }
 
 /// This is a public API to retrieve resources. The input parameter `uri` should be
@@ -45,7 +45,7 @@ trait Protocol: Send + Sync {
 /// The resource will be retrieved in different ways due to different schemes.
 /// If no scheme is given, it will by default use `file://` to look for the file
 /// in the local filesystem.
-pub async fn get_resource(uri: &str, ie_data: &crate::extra::token::InternalExtraData) -> Result<Vec<u8>> {
+pub async fn get_resource(uri: &str, ie_data: &crate::extra::token::InternalExtraData, extra_request: &str) -> Result<Vec<u8>> {
     let can_get = ie_data.can_get_res(uri);
     slog::info!(sl(), "confilesystem8 - get_resource({:?}): can_get = {:?}", uri, can_get);
     if !can_get {
@@ -70,7 +70,7 @@ pub async fn get_resource(uri: &str, ie_data: &crate::extra::token::InternalExtr
                     .await
                     .as_mut()
                     .ok_or_else(|| anyhow!("Uninitialized secure channel"))?
-                    .get_resource(&uri, ie_data)
+                    .get_resource(&uri, ie_data, extra_request)
                     .await
             }
 

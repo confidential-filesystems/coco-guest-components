@@ -336,10 +336,10 @@ fn get_extra_credential(kpi: &KeyProviderInput) -> Result<attester::extra_creden
         .map_err(|e| anyhow!("{}: {:?}", "confilesystem7 - Service - fail to parse extra_credential", e))?;
 
     info!("confilesystem6 - Service - get_extra_credential(): extra_credential.controller_crp_token.len() = {:?}, \
-        extra_credential.aa_attester = {:?}, extra_credential.container_name = {:?}",
+        extra_credential.aa_attester = {:?}, extra_credential.extra_request = {:?}",
         extra_credential.controller_crp_token.len(),
         extra_credential.aa_attester,
-        extra_credential.container_name);
+        extra_credential.extra_request);
 
     Ok(extra_credential)
 }

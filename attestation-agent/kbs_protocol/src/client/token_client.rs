@@ -37,6 +37,8 @@ impl KbsClientCapabilities for KbsClient<Box<dyn TokenProvider>> {
         );
         info!("confilesystem10 - KbsClient::get_resource(): remote_url = {:?}, extra_credential = {:?}",
                  remote_url, extra_credential);
+        info!("confilesystem21 - token_client.KbsClient::get_resource(): extra_credential.extra_request = {:?}",
+                 extra_credential.extra_request);
         for attempt in 1..=KBS_GET_RESOURCE_MAX_ATTEMPT {
             debug!("KBS client: trying to request KBS, attempt {attempt}");
             if self.token.is_none() {
@@ -48,7 +50,9 @@ impl KbsClientCapabilities for KbsClient<Box<dyn TokenProvider>> {
             let res = self
                 .http_client
                 .get(&remote_url)
+                .header("Content-Type", "application/octet-stream")
                 .bearer_auth(&token.content)
+                .body(extra_credential.extra_request.clone())
                 .send()
                 .await
                 .map_err(|e| Error::HttpError(format!("get failed: {e}")))?;

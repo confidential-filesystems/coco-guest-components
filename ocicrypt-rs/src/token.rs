@@ -31,7 +31,7 @@ pub struct InternalExtraData {
     pub key_id: String,
     pub key_user: String,
     pub authorized_res: Vec<AuthorizedRes>,
-    pub runtime_res: HashMap<String, HashMap<String, String>>,
+    pub runtime_res: HashMap<String, HashMap<String, HashMap<String, String>>>,
     //pub custom_claims: CustomClaims,
     //
     pub is_init_container: bool,
@@ -114,7 +114,7 @@ pub struct ExtraCredential {
     //
     pub aa_attester: String,
     //
-    pub container_name: String,
+    pub extra_request: String,
 }
 
 impl ExtraCredential {
@@ -124,7 +124,7 @@ impl ExtraCredential {
             controller_attestation_report: "".to_string(),
             controller_cert_chain: "".to_string(),
             aa_attester: "".to_string(),
-            container_name: "".to_string(),
+            extra_request: "".to_string(),
         };
         extra_credential
     }
@@ -133,13 +133,13 @@ impl ExtraCredential {
                controller_attestation_report: String,
                controller_cert_chain: String,
                aa_attester: String,
-               container_name: String) -> ExtraCredential {
+               extra_request: String) -> ExtraCredential {
         let extra_credential = ExtraCredential{
             controller_crp_token,
             controller_attestation_report,
             controller_cert_chain,
             aa_attester,
-            container_name,
+            extra_request,
         };
         extra_credential
     }

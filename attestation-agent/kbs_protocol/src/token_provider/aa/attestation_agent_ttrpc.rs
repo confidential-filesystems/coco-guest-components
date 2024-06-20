@@ -30,7 +30,7 @@ pub struct AttestationAgentServiceClient {
 impl AttestationAgentServiceClient {
     pub fn new(client: ::ttrpc::r#async::Client) -> Self {
         AttestationAgentServiceClient {
-            client,
+            client: client,
         }
     }
 

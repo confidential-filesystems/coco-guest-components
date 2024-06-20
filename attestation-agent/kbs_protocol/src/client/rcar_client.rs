@@ -211,12 +211,17 @@ impl KbsClientCapabilities for KbsClient<Box<dyn EvidenceProvider>> {
 
         log::info!("confilesystem6 - KbsClientCapabilities.get_resource(): remote_url = {:?}", remote_url);
 
+        log::info!("confilesystem21 - rcar_client.KbsClient::get_resource(): extra_credential.extra_request = {:?}",
+                extra_credential.extra_request);
+
         for attempt in 1..=KBS_GET_RESOURCE_MAX_ATTEMPT {
             debug!("KBS client: trying to request KBS, attempt {attempt}");
 
             let res = self
                 .http_client
                 .get(&remote_url)
+                .header("Content-Type", "application/octet-stream")
+                .body(extra_credential.extra_request.clone())
                 .send()
                 .await
                 .map_err(|e| Error::HttpError(format!("get failed: {e}")))?;

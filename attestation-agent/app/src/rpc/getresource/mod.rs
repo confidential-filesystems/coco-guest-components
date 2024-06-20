@@ -107,10 +107,10 @@ pub mod ttrpc {
             let extra_credential = attester::extra_credential::ExtraCredential::from_string(&req.ExtraCredential)
                 .expect("confilesystem7 - fail to from_string ExtraCredential");
             info!("confilesystem6 - AA-Service - ttrpc.get_resource(): extra_credential.controller_crp_token.len() = {:?}, \
-                extra_credential.aa_attester = {:?}, extra_credential.container_name = {:?}",
+                extra_credential.aa_attester = {:?}, extra_credential.extra_request = {:?}",
                 extra_credential.controller_crp_token.len(),
                 extra_credential.aa_attester,
-                extra_credential.container_name);
+                extra_credential.extra_request);
 
             let attestation_agent_mutex_clone = ASYNC_ATTESTATION_AGENT.clone();
             let mut attestation_agent = attestation_agent_mutex_clone.lock().await;

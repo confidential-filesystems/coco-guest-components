@@ -40,7 +40,7 @@ pub async fn credential_for_reference(
 ) -> Result<RegistryAuth> {
     slog::info!(sl(), "confilesystem8 - credential_for_reference(): auth_file_path = {:?}", auth_file_path);
 
-    let auth = crate::resource::get_resource(auth_file_path, ie_data).await?;
+    let auth = crate::resource::get_resource(auth_file_path, ie_data, "extra-request-credential_for_reference").await?;
     slog::info!(sl(), "confilesystem8 - credential_for_reference(): auth = {:?}", auth);
 
     let config: DockerConfigFile = serde_json::from_slice(&auth)?;

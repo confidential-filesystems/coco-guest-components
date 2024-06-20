@@ -7,7 +7,7 @@ message ExtraCredential {
     string ControllerAttestationReport = 2;
     string ControllerCertChain = 3;
     string AAAttester = 4;
-    string ContainerName = 5;
+    string ExtraRequest = 5;
 }
 
 message GetEvidenceRequest {

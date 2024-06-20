@@ -142,7 +142,7 @@ impl CosignParameters {
         slog::info!(sl(), "confilesystem8 - CosignParameters.verify_signature_and_get_payload(): self.key_path = {:?}", self.key_path);
         let key = match (&self.key_data, &self.key_path) {
             (None, None) => bail!("Neither keyPath nor keyData is specified."),
-            (None, Some(key_path)) => resource::get_resource(key_path, ie_data).await?,
+            (None, Some(key_path)) => resource::get_resource(key_path, ie_data, "extra-request-verify_signature_and_get_payload").await?,
             (Some(key_data), None) => key_data.as_bytes().to_vec(),
             (Some(_), Some(_)) => bail!("Both keyPath and keyData are specified."),
         };

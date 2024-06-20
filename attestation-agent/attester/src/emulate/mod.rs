@@ -76,8 +76,8 @@ pub struct EmulateAttester {}
 impl Attester for EmulateAttester {
     async fn get_evidence(&self, mut report_data: Vec<u8>, extra_credential: &crate::extra_credential::ExtraCredential) -> Result<String> {
         log::info!("confilesystem10 - EmulateAttester.get_evidence(): report_data.len() = {:?}, \
-            extra_credential.controller_crp_token.len() = {:?}, extra_credential.container_name = {:?}",
-            report_data.len(), extra_credential.controller_crp_token.len(), extra_credential.container_name);
+            extra_credential.controller_crp_token.len() = {:?}, extra_credential.extra_request = {:?}",
+            report_data.len(), extra_credential.controller_crp_token.len(), extra_credential.extra_request);
         report_data.resize(REPORT_DATA_LEN_DEFAULT, 0);
 
         let evidence = get_emulate_quote(report_data, extra_credential)?;

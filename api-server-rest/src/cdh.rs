@@ -169,7 +169,7 @@ impl CDHClient {
             ControllerAttestationReport: extra_credential.controller_attestation_report.clone(),
             ControllerCertChain: extra_credential.controller_cert_chain.clone(),
             AAAttester: extra_credential.aa_attester.clone(),
-            ContainerName: extra_credential.container_name.clone(),
+            ExtraRequest: extra_credential.extra_request.clone(),
             ..Default::default()
         };
 

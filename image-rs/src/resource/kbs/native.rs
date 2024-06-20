@@ -25,6 +25,7 @@ impl Client for Native {
         resource_path: &str,
         kbs_uri: &str,
         _ie_data: &crate::extra::token::InternalExtraData,
+        _extra_request: &str,
     ) -> Result<Vec<u8>> {
         self.inner
             .download_confidential_resource(kbc_name, resource_path, kbs_uri)

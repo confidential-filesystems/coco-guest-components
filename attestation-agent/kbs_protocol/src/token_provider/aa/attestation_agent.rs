@@ -37,8 +37,8 @@ pub struct ExtraCredential {
     pub ControllerCertChain: ::std::string::String,
     // @@protoc_insertion_point(field:attestation_agent.ExtraCredential.AAAttester)
     pub AAAttester: ::std::string::String,
-    // @@protoc_insertion_point(field:attestation_agent.ExtraCredential.ContainerName)
-    pub ContainerName: ::std::string::String,
+    // @@protoc_insertion_point(field:attestation_agent.ExtraCredential.ExtraRequest)
+    pub ExtraRequest: ::std::string::String,
     // special fields
     // @@protoc_insertion_point(special_field:attestation_agent.ExtraCredential.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -79,9 +79,9 @@ impl ExtraCredential {
             |m: &mut ExtraCredential| { &mut m.AAAttester },
         ));
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
-            "ContainerName",
-            |m: &ExtraCredential| { &m.ContainerName },
-            |m: &mut ExtraCredential| { &mut m.ContainerName },
+            "ExtraRequest",
+            |m: &ExtraCredential| { &m.ExtraRequest },
+            |m: &mut ExtraCredential| { &mut m.ExtraRequest },
         ));
         ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<ExtraCredential>(
             "ExtraCredential",
@@ -114,7 +114,7 @@ impl ::protobuf::Message for ExtraCredential {
                     self.AAAttester = is.read_string()?;
                 },
                 42 => {
-                    self.ContainerName = is.read_string()?;
+                    self.ExtraRequest = is.read_string()?;
                 },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
@@ -140,8 +140,8 @@ impl ::protobuf::Message for ExtraCredential {
         if !self.AAAttester.is_empty() {
             my_size += ::protobuf::rt::string_size(4, &self.AAAttester);
         }
-        if !self.ContainerName.is_empty() {
-            my_size += ::protobuf::rt::string_size(5, &self.ContainerName);
+        if !self.ExtraRequest.is_empty() {
+            my_size += ::protobuf::rt::string_size(5, &self.ExtraRequest);
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
@@ -161,8 +161,8 @@ impl ::protobuf::Message for ExtraCredential {
         if !self.AAAttester.is_empty() {
             os.write_string(4, &self.AAAttester)?;
         }
-        if !self.ContainerName.is_empty() {
-            os.write_string(5, &self.ContainerName)?;
+        if !self.ExtraRequest.is_empty() {
+            os.write_string(5, &self.ExtraRequest)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -185,7 +185,7 @@ impl ::protobuf::Message for ExtraCredential {
         self.ControllerAttestationReport.clear();
         self.ControllerCertChain.clear();
         self.AAAttester.clear();
-        self.ContainerName.clear();
+        self.ExtraRequest.clear();
         self.special_fields.clear();
     }
 
@@ -195,7 +195,7 @@ impl ::protobuf::Message for ExtraCredential {
             ControllerAttestationReport: ::std::string::String::new(),
             ControllerCertChain: ::std::string::String::new(),
             AAAttester: ::std::string::String::new(),
-            ContainerName: ::std::string::String::new(),
+            ExtraRequest: ::std::string::String::new(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -846,28 +846,28 @@ impl TeeType {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x17attestation-agent.proto\x12\x11attestation_agent\"\xfb\x01\n\x0fEx\
+    \n\x17attestation-agent.proto\x12\x11attestation_agent\"\xf9\x01\n\x0fEx\
     traCredential\x12.\n\x12ControllerCrpToken\x18\x01\x20\x01(\tR\x12Contro\
     llerCrpToken\x12@\n\x1bControllerAttestationReport\x18\x02\x20\x01(\tR\
     \x1bControllerAttestationReport\x120\n\x13ControllerCertChain\x18\x03\
     \x20\x01(\tR\x13ControllerCertChain\x12\x1e\n\nAAAttester\x18\x04\x20\
-    \x01(\tR\nAAAttester\x12$\n\rContainerName\x18\x05\x20\x01(\tR\rContaine\
-    rName\"\x84\x01\n\x12GetEvidenceRequest\x12\x20\n\x0bRuntimeData\x18\x01\
-    \x20\x01(\x0cR\x0bRuntimeData\x12L\n\x0fExtraCredential\x18\x02\x20\x01(\
-    \x0b2\".attestation_agent.ExtraCredentialR\x0fExtraCredential\"_\n\x13Ge\
-    tEvidenceResponse\x12,\n\x03Tee\x18\x01\x20\x01(\x0e2\x1a.attestation_ag\
-    ent.TeeTypeR\x03Tee\x12\x1a\n\x08Evidence\x18\x02\x20\x01(\x0cR\x08Evide\
-    nce\"}\n\x0fGetTokenRequest\x12\x1c\n\tTokenType\x18\x01\x20\x01(\tR\tTo\
-    kenType\x12L\n\x0fExtraCredential\x18\x02\x20\x01(\x0b2\".attestation_ag\
-    ent.ExtraCredentialR\x0fExtraCredential\"(\n\x10GetTokenResponse\x12\x14\
-    \n\x05Token\x18\x01\x20\x01(\x0cR\x05Token*i\n\x07TeeType\x12\r\n\tAzSnp\
-    Vtpm\x10\0\x12\x07\n\x03Sev\x10\x01\x12\x07\n\x03Sgx\x10\x02\x12\x07\n\
-    \x03Snp\x10\x03\x12\x07\n\x03Tdx\x10\x04\x12\x07\n\x03Cca\x10\x05\x12\
-    \x07\n\x03Csv\x10\x06\x12\n\n\x06Sample\x10\x07\x12\r\n\tChallenge\x10\
-    \x082\xcc\x01\n\x17AttestationAgentService\x12\\\n\x0bGetEvidence\x12%.a\
-    ttestation_agent.GetEvidenceRequest\x1a&.attestation_agent.GetEvidenceRe\
-    sponse\x12S\n\x08GetToken\x12\".attestation_agent.GetTokenRequest\x1a#.a\
-    ttestation_agent.GetTokenResponseb\x06proto3\
+    \x01(\tR\nAAAttester\x12\"\n\x0cExtraRequest\x18\x05\x20\x01(\tR\x0cExtr\
+    aRequest\"\x84\x01\n\x12GetEvidenceRequest\x12\x20\n\x0bRuntimeData\x18\
+    \x01\x20\x01(\x0cR\x0bRuntimeData\x12L\n\x0fExtraCredential\x18\x02\x20\
+    \x01(\x0b2\".attestation_agent.ExtraCredentialR\x0fExtraCredential\"_\n\
+    \x13GetEvidenceResponse\x12,\n\x03Tee\x18\x01\x20\x01(\x0e2\x1a.attestat\
+    ion_agent.TeeTypeR\x03Tee\x12\x1a\n\x08Evidence\x18\x02\x20\x01(\x0cR\
+    \x08Evidence\"}\n\x0fGetTokenRequest\x12\x1c\n\tTokenType\x18\x01\x20\
+    \x01(\tR\tTokenType\x12L\n\x0fExtraCredential\x18\x02\x20\x01(\x0b2\".at\
+    testation_agent.ExtraCredentialR\x0fExtraCredential\"(\n\x10GetTokenResp\
+    onse\x12\x14\n\x05Token\x18\x01\x20\x01(\x0cR\x05Token*i\n\x07TeeType\
+    \x12\r\n\tAzSnpVtpm\x10\0\x12\x07\n\x03Sev\x10\x01\x12\x07\n\x03Sgx\x10\
+    \x02\x12\x07\n\x03Snp\x10\x03\x12\x07\n\x03Tdx\x10\x04\x12\x07\n\x03Cca\
+    \x10\x05\x12\x07\n\x03Csv\x10\x06\x12\n\n\x06Sample\x10\x07\x12\r\n\tCha\
+    llenge\x10\x082\xcc\x01\n\x17AttestationAgentService\x12\\\n\x0bGetEvide\
+    nce\x12%.attestation_agent.GetEvidenceRequest\x1a&.attestation_agent.Get\
+    EvidenceResponse\x12S\n\x08GetToken\x12\".attestation_agent.GetTokenRequ\
+    est\x1a#.attestation_agent.GetTokenResponseb\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file

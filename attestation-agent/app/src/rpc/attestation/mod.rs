@@ -43,7 +43,7 @@ pub mod grpc {
                 controller_attestation_report: request.ExtraCredential.ControllerAttestationReport,
                 controller_cert_chain: request.ExtraCredential.ControllerCertChain,
                 aa_attester: request.ExtraCredential.AAAttester,
-                container_name: request.ExtraCredential.ContainerName,
+                extra_request: request.ExtraCredential.ExtraRequest,
             };
 
             let attestation_agent_mutex_clone = Arc::clone(&ASYNC_ATTESTATION_AGENT);
@@ -79,7 +79,7 @@ pub mod grpc {
                 controller_attestation_report: request.ExtraCredential.ControllerAttestationReport,
                 controller_cert_chain: request.ExtraCredential.ControllerCertChain,
                 aa_attester: request.ExtraCredential.AAAttester,
-                container_name: request.ExtraCredential.ContainerName,
+                extra_request: request.ExtraCredential.ExtraRequest,
             };
 
             let attestation_agent_mutex_clone = Arc::clone(&ASYNC_ATTESTATION_AGENT);
@@ -142,16 +142,16 @@ pub mod ttrpc {
 
             let extra_credential_proto = &req.ExtraCredential.unwrap();
             info!("confilesystem10 - AA-Service - ttrpc.get_token(): extra_credential_proto.ControllerCrpToken.len() = {:?}, \
-                extra_credential_proto.AAAttester = {:?}, extra_credential_proto.ContainerName = {:?}",
+                extra_credential_proto.AAAttester = {:?}, extra_credential_proto.ExtraRequest = {:?}",
                 extra_credential_proto.ControllerCrpToken.len(),
                 extra_credential_proto.AAAttester,
-                extra_credential_proto.ContainerName);
+                extra_credential_proto.ExtraRequest);
             let extra_credential = attester::extra_credential::ExtraCredential::new(
                 extra_credential_proto.ControllerCrpToken.clone(),
                 extra_credential_proto.ControllerAttestationReport.clone(),
                 extra_credential_proto.ControllerCertChain.clone(),
                 extra_credential_proto.AAAttester.clone(),
-                extra_credential_proto.ContainerName.clone(),
+                extra_credential_proto.ExtraRequest.clone(),
             );
 
             let attestation_agent_mutex_clone = ASYNC_ATTESTATION_AGENT.clone();
@@ -191,13 +191,13 @@ pub mod ttrpc {
                 extra_credential_proto.AAAttester = {:?}, extra_credential_proto.ContainerName = {:?}",
                 extra_credential_proto.ControllerCrpToken.len(),
                 extra_credential_proto.AAAttester,
-                extra_credential_proto.ContainerName);
+                extra_credential_proto.ExtraRequest);
             let extra_credential = attester::extra_credential::ExtraCredential::new(
                 extra_credential_proto.ControllerCrpToken.clone(),
                 extra_credential_proto.ControllerAttestationReport.clone(),
                 extra_credential_proto.ControllerCertChain.clone(),
                 extra_credential_proto.AAAttester.clone(),
-                extra_credential_proto.ContainerName.clone(),
+                extra_credential_proto.ExtraRequest.clone(),
             );
 
             let attestation_agent_mutex_clone = ASYNC_ATTESTATION_AGENT.clone();

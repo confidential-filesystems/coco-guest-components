@@ -569,7 +569,7 @@ impl KeyWrapper for KeyProviderKeyWrapper {
             ie_data.controller_attestation_report.clone(),
             ie_data.controller_cert_chain.clone(),
             ie_data.aa_attester.clone(),
-            ie_data.container_name.clone()).to_string().expect("confilesystem7 - fail to get extra credential");
+            "extra-request-KeyProviderKeyWrapper.unwrap_keys".to_string()).to_string().expect("confilesystem7 - fail to get extra credential");
 
         let key_unwrap_params = KeyUnwrapParams {
             dc: Some(dc_config.clone()),

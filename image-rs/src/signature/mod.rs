@@ -140,7 +140,7 @@ pub async fn allows_image(
     // Read the set of signature schemes that need to be verified
     // of the image from the policy configuration.
     slog::info!(sl(), "confilesystem18 - allows_image(): image_policy_id = {:?}", image_policy_id);
-    let policy_json_vec = resource::get_resource(image_policy_id/*&file_paths.policy_path*/, ie_data).await?;
+    let policy_json_vec = resource::get_resource(image_policy_id/*&file_paths.policy_path*/, ie_data, "extra-request-allows_image").await?;
     slog::info!(sl(), "confilesystem18 - allows_image(): policy_json_vec = {:?}", policy_json_vec);
     let policy_json_str = String::from_utf8_lossy(&policy_json_vec);
     slog::info!(sl(), "confilesystem18 - allows_image(): policy_json_str = {:?}", policy_json_str);

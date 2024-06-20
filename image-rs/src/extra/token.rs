@@ -77,7 +77,7 @@ pub struct CustomClaims {
     pub authorized_res: Vec<AuthorizedRes>,
 
     // runtime-res
-    pub runtime_res: HashMap<String, HashMap<String, String>>,
+    pub runtime_res: HashMap<String, HashMap<String, HashMap<String, String>>>,
 }
 
 impl CustomClaims {
@@ -238,7 +238,7 @@ pub struct InternalExtraData {
     pub key_id: String,
     pub key_user: String,
     pub authorized_res: Vec<AuthorizedRes>,
-    pub runtime_res: HashMap<String, HashMap<String, String>>,
+    pub runtime_res: HashMap<String, HashMap<String, HashMap<String, String>>>,
     //pub custom_claims: CustomClaims,
     //
     pub is_init_container: bool,
@@ -279,13 +279,23 @@ impl InternalExtraData {
             info!(sl(), "    ---- confilesystem12 - self.container_name = {:?}, container_name = {:?}: runtime_res.len() = {:?}",
                 self.container_name, container_name, runtime_res.len());
             if self.container_name == *container_name {
-                for (kbs_src, local_dst) in runtime_res {
-                    info!(sl(), "    ---- confilesystem9 - kbs_src = {:?}: local_dst = {:?}", kbs_src, local_dst);
+                for (kbs_src, resource_infos) in runtime_res {
+                    info!(sl(), "    ---- confilesystem9 - kbs_src = {:?}: resource_infos = {:?}", kbs_src, resource_infos);
                     if kbs_src == CONTROLLER_CFS_EC_PUB_KEY {
                         continue;
                     }
 
-                    let dst_data = resource::get_resource(kbs_src, &self).await
+                    let local_dst = match resource_infos.get("target") {
+                        Some(target) => target,
+                        _ => { bail!("confilesystem21 - runtime_res not include target"); },
+                    };
+
+                    let extra_request = match resource_infos.get("extra") {
+                        Some(extra) => extra,
+                        _ => "extra-request-runtime_res not include extra",
+                    };
+
+                    let dst_data = resource::get_resource(kbs_src, &self, extra_request).await
                         .map_err(|e| anyhow!("confilesystem2 - get_resource({:?}) failed: {:?}", kbs_src, e))?;
                     info!(sl(), "    ---- confilesystem2 - kbs_src = {:?} -> dst_data = {:?}", kbs_src, dst_data);
 

@@ -66,6 +66,7 @@ trait Client: Send + Sync {
         resource_path: &str,
         kbs_uri: &str,
         ie_data: &crate::extra::token::InternalExtraData,
+        extra_request: &str,
     ) -> Result<Vec<u8>>;
 }
 
@@ -150,7 +151,7 @@ impl Protocol for SecureChannel {
     ///
     /// Please refer to https://github.com/confidential-containers/guest-components/blob/main/image-rs/docs/ccv1_image_security_design.md#get-resource-service
     /// for more information.
-    async fn get_resource(&mut self, resource_uri: &str, ie_data: &crate::extra::token::InternalExtraData) -> Result<Vec<u8>> {
+    async fn get_resource(&mut self, resource_uri: &str, ie_data: &crate::extra::token::InternalExtraData, extra_request: &str) -> Result<Vec<u8>> {
         slog::info!(sl(), "confilesystem6 - SecureChannel.get_resource(): resource_uri = {:?}", resource_uri);
         if let Some(res) = self.check_local(resource_uri).await? {
             return Ok(res);
@@ -170,7 +171,7 @@ impl Protocol for SecureChannel {
 
         let res = self
             .client
-            .get_resource(&self.kbc_name, &resource_path, &self.kbs_uri, ie_data)
+            .get_resource(&self.kbc_name, &resource_path, &self.kbs_uri, ie_data, extra_request)
             .await?;
 
         let path = self.get_filepath(resource_uri);
