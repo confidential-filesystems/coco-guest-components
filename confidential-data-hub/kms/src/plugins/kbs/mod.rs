@@ -29,7 +29,7 @@ use std::collections::HashMap;
 use slog::KV;
 use tokio::sync::Mutex;
 
-use crate::{Annotations, Error, Getter, Setter, Result};
+use crate::{Annotations, Error, Getter, Setter, Result, Deleter};
 
 const PEER_POD_CONFIG_PATH: &str = "/peerpod/daemon.json";
 
@@ -118,6 +118,8 @@ pub trait Kbc: Send + Sync {
     async fn get_resource(&mut self, _rid: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
 
     async fn set_resource(&mut self, rid: ResourceUri, content: Vec<u8>) -> Result<Vec<u8>>;
+
+    async fn delete_resource(&mut self, rid: ResourceUri, content: Vec<u8>) -> Result<Vec<u8>>;
 }
 
 /// A fake KbcClient to carry the [`Getter`] semantics. The real `new()`
@@ -172,6 +174,31 @@ impl Setter for KbcClient {
         match client {
             #[cfg(feature = "kbs")]
             RealClient::Cc(c) => c.set_resource(resource_uri, content).await,
+            _ => {
+                Err(Error::UnsupportedProvider("client error".to_string()))
+            }
+        }
+    }
+}
+
+#[async_trait]
+impl Deleter for KbcClient {
+    async fn delete_secret(&mut self, name: &str, content: Vec<u8>) -> Result<Vec<u8>> {
+        let resource_uri = ResourceUri::try_from(name)
+            .map_err(|_| Error::KbsClientError(format!("illegal kbs resource uri: {name}")))?;
+        let real_client = KBS_CLIENT.clone();
+        let mut client = real_client.lock().await;
+
+        if client.is_none() {
+            let c = RealClient::new().await?;
+            *client = Some(c);
+        }
+
+        let client = client.as_mut().expect("must be initialized");
+
+        match client {
+            #[cfg(feature = "kbs")]
+            RealClient::Cc(c) => c.delete_resource(resource_uri, content).await,
             _ => {
                 Err(Error::UnsupportedProvider("client error".to_string()))
             }

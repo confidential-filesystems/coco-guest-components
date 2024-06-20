@@ -14,7 +14,7 @@ use tokio::sync::RwLock;
 use ttrpc::{asynchronous::TtrpcContext, Code, Error, Status};
 
 use crate::{
-    api::{GetResourceRequest, GetResourceResponse, SetResourceRequest, SetResourceResponse, UnsealSecretInput, UnsealSecretOutput},
+    api::{GetResourceRequest, GetResourceResponse, SetResourceRequest, SetResourceResponse, DeleteResourceRequest, DeleteResourceResponse, UnsealSecretInput, UnsealSecretOutput},
     api_ttrpc::{ResourceService, SealedSecretService},
 };
 
@@ -121,6 +121,28 @@ impl ResourceService for Server {
         })?;
 
         let mut reply = SetResourceResponse::new();
+        reply.Response = response;
+        debug!("send back the response");
+        Ok(reply)
+    }
+
+    async fn delete_resource(
+        &self,
+        _ctx: &TtrpcContext,
+        req: DeleteResourceRequest,
+    ) -> ::ttrpc::Result<DeleteResourceResponse> {
+        debug!("delete new DeleteResource request");
+        let reader = HUB.read().await;
+        let reader = reader.as_ref().expect("must be initialized");
+
+        let response = reader.delete_resource(req.ResourcePath, req.Resource).await.map_err(|e| {
+            let mut status = Status::new();
+            status.set_code(Code::INTERNAL);
+            status.set_message(format!("[CDH] [ERROR]: Delete Resource failed: {e}"));
+            Error::RpcStatus(status)
+        })?;
+
+        let mut reply = DeleteResourceResponse::new();
         reply.Response = response;
         debug!("send back the response");
         Ok(reply)

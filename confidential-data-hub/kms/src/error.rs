@@ -21,4 +21,7 @@ pub enum Error {
 
     #[error("Set resource error: {0}")]
     SetResourceError(String),
+
+    #[error("Delete resource error: {0}")]
+    DeleteResourceError(String),
 }

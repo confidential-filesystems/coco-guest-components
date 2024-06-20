@@ -15,6 +15,9 @@ pub enum Error {
     #[error("set resource failed: {0}")]
     SetResource(String),
 
+    #[error("delete resource failed: {0}")]
+    DeleteResource(String),
+
     #[error("init Hub failed: {0}")]
     InitializationFailed(String),
 

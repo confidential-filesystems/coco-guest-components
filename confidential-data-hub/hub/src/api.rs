@@ -28,4 +28,6 @@ pub trait DataHub {
     async fn get_resource(&self, uri: String, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
 
     async fn set_resource(&self, uri: String, resource: Vec<u8>) -> Result<Vec<u8>>;
+
+    async fn delete_resource(&self, uri: String, resource: Vec<u8>) -> Result<Vec<u8>>;
 }

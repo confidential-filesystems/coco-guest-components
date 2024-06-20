@@ -80,4 +80,18 @@ impl DataHub for Hub {
             .map_err(|e| Error::SetResource(format!("set rersource failed: {e}")))?;
         Ok(res)
     }
+
+    async fn delete_resource(&self, uri: String, resource: Vec<u8>) -> Result<Vec<u8>> {
+        // to initialize a delete_resource_provider client we do not need the ProviderSettings.
+        let mut client = kms::new_deleter("kbs", ProviderSettings::default())
+            .await
+            .map_err(|e| Error::DeleteResource(format!("create kbs client failed: {e}")))?;
+
+        // to delete resource using a delete_resource_provider client we do not need the Annotations.
+        let res = client
+            .delete_secret(&uri, resource)
+            .await
+            .map_err(|e| Error::DeleteResource(format!("delete rersource failed: {e}")))?;
+        Ok(res)
+    }
 }

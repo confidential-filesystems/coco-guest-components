@@ -79,3 +79,11 @@ pub trait Getter: Send + Sync {
     /// `annotations`.
     async fn get_secret(&mut self, name: &str, annotations: &Annotations, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>>;
 }
+
+#[async_trait]
+pub trait Deleter: Send + Sync {
+    /// Delete secret. The `content` will be inserted with the key `name`.
+    ///
+    /// The returned [`Annotations`] is the parameters of the delete operation.
+    async fn delete_secret(&mut self, name: &str, content: Vec<u8>) -> Result<Vec<u8>>;
+}

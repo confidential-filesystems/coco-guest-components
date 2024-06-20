@@ -5,7 +5,7 @@
 
 use crate::router::ApiHandler;
 use crate::ttrpc_proto::attestation_agent::ExtraCredential;
-use crate::ttrpc_proto::confidential_data_hub::{GetResourceRequest, SetResourceRequest};
+use crate::ttrpc_proto::confidential_data_hub::{GetResourceRequest, SetResourceRequest, DeleteResourceRequest};
 use crate::ttrpc_proto::confidential_data_hub_ttrpc::ResourceServiceClient;
 use anyhow::*;
 use async_trait::async_trait;
@@ -103,6 +103,23 @@ impl ApiHandler for CDHClient {
                                 .unwrap_or_else(|e| e.to_string().into());
                             return self.octet_stream_response(results);
                         },
+                        &Method::DELETE => {
+                            let resource_data = match crate::utils::get_body_from_req(req).await {
+                                core::result::Result::Ok(content) => {
+                                    //println!("confilesystem20 - CDHClient::handle_request(): get_body_from_req() -> content = {:?}", content);
+                                    content
+                                },
+                                Err(e) => {
+                                    println!("confilesystem20 - CDHClient::handle_request(): get_body_from_req() -> e = {:?}", e);
+                                    return self.bad_request();
+                                }
+                            };
+                            let results = self
+                                .delete_resource_extra(resource_path, resource_data)
+                                .await
+                                .unwrap_or_else(|e| e.to_string().into());
+                            return self.octet_stream_response(results);
+                        },
                         _ => {
                             return self.not_allowed();
                         }
@@ -180,6 +197,22 @@ impl CDHClient {
         let res = self
             .client
             .set_resource(ttrpc::context::with_timeout(TTRPC_TIMEOUT), &req)
+            .await?;
+        Ok(res.Response)
+    }
+
+    pub async fn delete_resource_extra(&self, resource_path: &str, resource_data: Vec<u8>) -> Result<Vec<u8>> {
+        println!("confilesystem20 - CDHClient::delete_resource_extra(): resource_path = {:?}, resource_data.len() = {:?}",
+                 resource_path, resource_data.len());
+
+        let req = DeleteResourceRequest {
+            ResourcePath: format!("{}{}", KBS_PREFIX, resource_path),
+            Resource: resource_data,
+            ..Default::default()
+        };
+        let res = self
+            .client
+            .delete_resource(ttrpc::context::with_timeout(TTRPC_TIMEOUT), &req)
             .await?;
         Ok(res.Response)
     }

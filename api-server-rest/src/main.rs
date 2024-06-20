@@ -76,7 +76,7 @@ async fn main() -> Result<()> {
         "resource" => {
             router.register_route(
                 CDH_ROOT,
-                Box::new(CDHClient::new(&args.cdh_addr, &args.aa_attester, vec![Method::GET, Method::POST])?),
+                Box::new(CDHClient::new(&args.cdh_addr, &args.aa_attester, vec![Method::GET, Method::POST, Method::DELETE])?),
             );
         }
 
@@ -90,7 +90,7 @@ async fn main() -> Result<()> {
         "all" => {
             router.register_route(
                 CDH_ROOT,
-                Box::new(CDHClient::new(&args.cdh_addr, &args.aa_attester, vec![Method::GET, Method::POST])?),
+                Box::new(CDHClient::new(&args.cdh_addr, &args.aa_attester, vec![Method::GET, Method::POST, Method::DELETE])?),
             );
 
             router.register_route(

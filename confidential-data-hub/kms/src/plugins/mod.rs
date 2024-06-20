@@ -5,7 +5,7 @@
 
 use strum::{AsRefStr, EnumString};
 
-use crate::{Decrypter, Error, Getter, Setter, ProviderSettings, Result};
+use crate::{Decrypter, Error, Getter, Setter, ProviderSettings, Result, Deleter};
 
 const _IN_GUEST_DEFAULT_KEY_PATH: &str = "/run/confidential-containers/cdh/kms-credential";
 
@@ -64,5 +64,17 @@ pub async fn new_setter(
         .map_err(|_| Error::UnsupportedProvider(provider_name.to_string()))?;
     match provider {
         VaultProvider::Kbs => Ok(Box::new(kbs::KbcClient::new().await?) as Box<dyn Setter>),
+    }
+}
+
+/// Create a new [`Deleter`] by given provider name and [`ProviderSettings`]
+pub async fn new_deleter(
+    provider_name: &str,
+    _provider_settings: ProviderSettings,
+) -> Result<Box<dyn Deleter>> {
+    let provider = VaultProvider::try_from(provider_name)
+        .map_err(|_| Error::UnsupportedProvider(provider_name.to_string()))?;
+    match provider {
+        VaultProvider::Kbs => Ok(Box::new(kbs::KbcClient::new().await?) as Box<dyn Deleter>),
     }
 }

@@ -91,6 +91,11 @@ impl ResourceServiceClient {
         let mut cres = super::api::SetResourceResponse::new();
         ::ttrpc::async_client_request!(self, ctx, req, "api.ResourceService", "SetResource", cres);
     }
+
+    pub async fn delete_resource(&self, ctx: ttrpc::context::Context, req: &super::api::DeleteResourceRequest) -> ::ttrpc::Result<super::api::DeleteResourceResponse> {
+        let mut cres = super::api::DeleteResourceResponse::new();
+        ::ttrpc::async_client_request!(self, ctx, req, "api.ResourceService", "DeleteResource", cres);
+    }
 }
 
 struct GetResourceMethod {
@@ -115,6 +120,17 @@ impl ::ttrpc::r#async::MethodHandler for SetResourceMethod {
     }
 }
 
+struct DeleteResourceMethod {
+    service: Arc<Box<dyn ResourceService + Send + Sync>>,
+}
+
+#[async_trait]
+impl ::ttrpc::r#async::MethodHandler for DeleteResourceMethod {
+    async fn handler(&self, ctx: ::ttrpc::r#async::TtrpcContext, req: ::ttrpc::Request) -> ::ttrpc::Result<::ttrpc::Response> {
+        ::ttrpc::async_request_handler!(self, ctx, req, api, DeleteResourceRequest, delete_resource);
+    }
+}
+
 #[async_trait]
 pub trait ResourceService: Sync {
     async fn get_resource(&self, _ctx: &::ttrpc::r#async::TtrpcContext, _: super::api::GetResourceRequest) -> ::ttrpc::Result<super::api::GetResourceResponse> {
@@ -122,6 +138,9 @@ pub trait ResourceService: Sync {
     }
     async fn set_resource(&self, _ctx: &::ttrpc::r#async::TtrpcContext, _: super::api::SetResourceRequest) -> ::ttrpc::Result<super::api::SetResourceResponse> {
         Err(::ttrpc::Error::RpcStatus(::ttrpc::get_status(::ttrpc::Code::NOT_FOUND, "/api.ResourceService/SetResource is not supported".to_string())))
+    }
+    async fn delete_resource(&self, _ctx: &::ttrpc::r#async::TtrpcContext, _: super::api::DeleteResourceRequest) -> ::ttrpc::Result<super::api::DeleteResourceResponse> {
+        Err(::ttrpc::Error::RpcStatus(::ttrpc::get_status(::ttrpc::Code::NOT_FOUND, "/api.ResourceService/DeleteResource is not supported".to_string())))
     }
 }
 
@@ -135,6 +154,9 @@ pub fn create_resource_service(service: Arc<Box<dyn ResourceService + Send + Syn
 
     methods.insert("SetResource".to_string(),
                     Box::new(SetResourceMethod{service: service.clone()}) as Box<dyn ::ttrpc::r#async::MethodHandler + Send + Sync>);
+
+    methods.insert("DeleteResource".to_string(),
+                    Box::new(DeleteResourceMethod{service: service.clone()}) as Box<dyn ::ttrpc::r#async::MethodHandler + Send + Sync>);
 
     ret.insert("api.ResourceService".to_string(), ::ttrpc::r#async::Service{ methods, streams });
     ret

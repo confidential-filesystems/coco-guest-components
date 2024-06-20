@@ -42,6 +42,13 @@ impl Kbc for OfflineFsKbc {
         //1TODO
         Ok(content)
     }
+
+    async fn delete_resource(&mut self, rid: ResourceUri, content: Vec<u8>) -> Result<Vec<u8>> {
+        log::info!("confilesystem20 - cdh.kms.OfflineFsKbc.delete_resource():  rid = {:?}, content.len() = {:?}",
+            rid, content.len());
+        //1TODO
+        Ok(content)
+    }
 }
 
 impl OfflineFsKbc {

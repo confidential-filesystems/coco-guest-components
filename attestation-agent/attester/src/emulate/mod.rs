@@ -13,16 +13,20 @@ use sev::firmware::host::{CertTableEntry, CertType};
 use sha2::{Digest, Sha384};
 
 //
+pub const ATTESTER_SECURITY: &str = "security";
 pub const ATTESTER_CONTROLLER: &str = "controller";
 pub const ATTESTER_METADATA: &str = "metadata";
 pub const ATTESTER_WORKLOAD: &str = "workload";
 
-const ENV_CFS_CONTROLLER_ID: &str  ="CFS_CONTROLLER_ID";
-const ENV_CFS_METADATA_ID: &str  ="CFS_METADATA_ID";
-const ENV_CFS_WORKLOAD_ID: &str  ="CFS_WORKLOAD_ID";
-const CFS_CONTROLLER_ID_DEFAULT: &str  ="cc_cfs_controller_2024";
-const CFS_METADATA_ID_DEFAULT: &str  ="cc_cfs_metadata_2024";
-const CFS_WORKLOAD_ID_DEFAULT: &str  ="cc_cfs_workload_2024";
+pub const ENV_CFS_SECURITY_ID: &str  ="CFS_SECURITY_ID";
+pub const ENV_CFS_CONTROLLER_ID: &str  ="CFS_CONTROLLER_ID";
+pub const ENV_CFS_METADATA_ID: &str  ="CFS_METADATA_ID";
+pub const ENV_CFS_WORKLOAD_ID: &str  ="CFS_WORKLOAD_ID";
+
+pub const CFS_SECURITY_ID_DEFAULT: &str  ="cc_cfs_security_2024";
+pub const CFS_CONTROLLER_ID_DEFAULT: &str  ="cc_cfs_controller_2024";
+pub const CFS_METADATA_ID_DEFAULT: &str  ="cc_cfs_metadata_2024";
+pub const CFS_WORKLOAD_ID_DEFAULT: &str  ="cc_cfs_workload_2024";
 
 const ENV_EMULATE_GUEST_SVN: u32 = 0xFFFFFFFF;
 
@@ -88,6 +92,12 @@ fn get_emulate_quote(report_data: Vec<u8>, extra_credential: &crate::extra_crede
     let mut emulate_quote = EmulateQuote::default();
 
     match extra_credential.aa_attester.as_str() {
+        ATTESTER_SECURITY => {
+            emulate_quote = match get_security_emulate_quote(report_data.clone(), extra_credential) {
+                core::result::Result::Ok(emulate_quote_content) => emulate_quote_content,
+                Err(e) => bail!("confilesystem10 - fail to get security emulate quoute: e = {:?}", e)
+            };
+        },
         ATTESTER_CONTROLLER => {
             emulate_quote = match get_controller_emulate_quote(report_data.clone(), extra_credential) {
                 core::result::Result::Ok(emulate_quote_content) => emulate_quote_content,
@@ -111,6 +121,50 @@ fn get_emulate_quote(report_data: Vec<u8>, extra_credential: &crate::extra_crede
         }
     }
 
+    Ok(emulate_quote)
+}
+
+fn get_security_emulate_quote(report_data: Vec<u8>, extra_credential: &crate::extra_credential::ExtraCredential) -> Result<EmulateQuote> {
+    log::info!("confilesystem10 - get_security_emulate_quote(): extra_credential.controller_crp_token.len() = {:?}", extra_credential.controller_crp_token.len());
+    let mut new_report_data = report_data;
+    if extra_credential.controller_crp_token.len() > 0 {
+        new_report_data = get_hash_48bites(&extra_credential.controller_crp_token).to_vec();
+    }
+
+    let mut attestation_reports:Vec<AttesterReport> = Vec::new();
+    // confilesystem : get measurement from env var:
+    let security_id = env::var(ENV_CFS_SECURITY_ID).unwrap_or_else(|_| CFS_SECURITY_ID_DEFAULT.to_string());
+    let measurement = get_hash_48bites(&security_id);
+    let mut attestation_report = get_emulate_attestation_report(new_report_data.clone(),
+                                                                &measurement, ENV_EMULATE_GUEST_SVN, extra_credential);
+    let mut cert_chain: Vec<CertTableEntry> = Vec::new();
+    cert_chain.push(get_emulate_cert(new_report_data.clone(), extra_credential));
+
+    let attestation_report_str = serde_json::to_string(&attestation_report)?;
+    //.expect("confilesystem8 - fail to json marsh attestation_report");
+    let attestation_report_vec = serde_json::to_vec(&attestation_report)?;
+    //.expect("confilesystem8 - fail to json marsh attestation_report to vec");
+    let attestation_report_base64 = base64::engine::general_purpose::STANDARD.encode(attestation_report_vec.as_slice());
+    let cert_chain_str = serde_json::to_string(&cert_chain)?;
+    //.expect("confilesystem8 - fail to json marsh cert_chain");
+    let cert_chain_vec = serde_json::to_vec(&cert_chain)?;
+    //.expect("confilesystem8 - fail to json marsh cert_chain to vec");
+    let cert_chain_base64 = base64::engine::general_purpose::STANDARD.encode(cert_chain_vec.as_slice());
+    log::info!("confilesystem10 - EmulateAttester.get_security_emulate_quote(): attestation_report_str = {:?}", attestation_report_str);
+    log::info!("confilesystem8 - EmulateAttester.get_security_emulate_quote(): attestation_report_base64 = {:?}", attestation_report_base64);
+    log::info!("confilesystem8 - EmulateAttester.get_security_emulate_quote(): cert_chain_str = {:?}", cert_chain_str);
+    log::info!("confilesystem8 - EmulateAttester.get_security_emulate_quote(): cert_chain_base64 = {:?}", cert_chain_base64);
+
+    let attester_report = AttesterReport{
+        attester: extra_credential.aa_attester.clone(),
+        attestation_report: attestation_report,
+        cert_chain: Some(cert_chain),
+    };
+    attestation_reports.push(attester_report);
+    let emulate_quote = EmulateQuote {
+        crp_token: None,
+        attestation_reports: attestation_reports,
+    };
     Ok(emulate_quote)
 }
 

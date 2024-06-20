@@ -126,9 +126,10 @@ impl ApiHandler for AAClient {
                             return self.bad_request();
                         }
                     };
-                    println!("confilesystem11 - AAClient::handle_request(): extra_credential = {:?}, self.aa_attester = {:?}",
+                    println!("confilesystem20 - AAClient::handle_request(): extra_credential = {:?}, self.aa_attester = {:?}",
                              extra_credential, self.aa_attester);
-                    if self.aa_attester != extra_credential.aa_attester {
+                    if self.aa_attester != extra_credential.aa_attester
+                     && extra_credential.aa_attester != "security" {
                         return self.bad_request();
                     }
                     let evidence_rsp = self

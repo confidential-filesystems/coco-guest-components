@@ -36,6 +36,15 @@ message SetResourceResponse {
     bytes Response = 1;
 }
 
+message DeleteResourceRequest {
+    string ResourcePath = 1;
+    bytes Resource = 2;
+}
+
+message DeleteResourceResponse {
+    bytes Response = 1;
+}
+
 service SealedSecretService {
     rpc UnsealSecret(UnsealSecretInput) returns (UnsealSecretOutput) {};
 }
@@ -43,4 +52,5 @@ service SealedSecretService {
 service ResourceService {
     rpc GetResource(GetResourceRequest) returns (GetResourceResponse) {};
     rpc SetResource(SetResourceRequest) returns (SetResourceResponse) {};
+    rpc DeleteResource(DeleteResourceRequest) returns (DeleteResourceResponse) {};
 }

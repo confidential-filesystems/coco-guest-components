@@ -84,9 +84,26 @@ impl Kbc for CcKbc {
         println!("confilesystem20 println- cdh.kms.CcKbc.set_resource():  set_rsp = {:?}", set_rsp);
         Ok(set_rsp)
     }
+
+    async fn delete_resource(&mut self, rid: ResourceUri, content: Vec<u8>) -> Result<Vec<u8>> {
+        println!("confilesystem20 println- cdh.kms.CcKbc.delete_resource():  rid = {:?}, content.len() = {:?}",
+                 rid, content.len());
+        println!("confilesystem20 println- cdh.kms.CcKbc.delete_resource():  self.kbs_infos.kbs_url = {:?}", self.kbs_infos.kbs_url);
+        println!("confilesystem20 println- cdh.kms.CcKbc.delete_resource():  self.kbs_infos.kbs_ld = {:?}", self.kbs_infos.kbs_ld);
+
+        let delete_rsp = delete_resource(&self.kbs_infos.kbs_url, &rid.resource_path(), content, &self.kbs_infos.kbs_ld, self.kbs_infos.kbs_is_emulated)
+            .await
+            .map_err(|e| Error::DeleteResourceError(format!("delete resource failed: {e}")))?;;
+
+        println!("confilesystem20 println- cdh.kms.CcKbc.delete_resource():  delete_rsp = {:?}", delete_rsp);
+        Ok(delete_rsp)
+    }
 }
 
 // util apis
+use rand::Rng;
+use rand_chacha::ChaChaRng;
+use rand::SeedableRng;
 use kbs_types::{Attestation, TeePubKey};
 use serde::{Serialize, Deserialize};
 use crate::plugins::kbs::resource::local_fs::{LocalFsRepoDesc, LocalFs};
@@ -118,7 +135,8 @@ pub async fn set_resource(
     println!("confilesystem20 println- set_resource(): url = {:?}", url);
     println!("confilesystem20 println- set_resource(): path = {:?}", path);
 
-    let challenge = "123456";
+    let challenge = gen_challenge();//"123456";
+    println!("confilesystem20 println- set_resource(): challenge = {:?}", challenge);
     let kbs_root_certs_pem = vec![];
 
     let http_client = build_http_client(kbs_root_certs_pem)?;
@@ -176,7 +194,7 @@ pub async fn set_resource(
     };
     //let repository = LocalFs::new(&LocalFsRepoDesc::default())?;
     let repository = Box::new(LocalFs::new(&LocalFsRepoDesc::default())?) as Box<dyn crate::plugins::kbs::resource::Repository + Send + Sync>;
-    let evaluate_result = tee_verifier.evaluate(challenge.to_string(), &attestation, &repository)
+    let evaluate_result = tee_verifier.evaluate(challenge, &attestation, &repository)
         .await
         .map_err(|e| anyhow!("Verifier evaluate failed: {e:?}"))?;
     println!("confilesystem20 println- set_resource(): evidence.evaluate_result = {:?}", evaluate_result);
@@ -196,6 +214,109 @@ pub async fn set_resource(
         .send()
         .await?;
     println!("confilesystem20 println- set_resource(): response.status() = {:?}", response.status());
+    match response.status() {
+        reqwest::StatusCode::OK => {
+            //let body_bytes = response.bytes().await?;
+            Ok(response.bytes().await?.to_vec())
+        },
+        _ => {
+            bail!("Request Failed, Response: {:?}", response.text().await?)
+        }
+    }
+}
+
+pub async fn delete_resource(
+    url: &str,
+    path: &str,
+    resource_bytes: Vec<u8>,
+    kbs_ld: &str,
+    kbs_is_emulated: bool,
+    //challenge: &str,
+    //auth_key: String,
+    //kbs_root_certs_pem: Vec<String>,
+) -> anyhow::Result<Vec<u8>> {
+    println!("confilesystem20 println- delete_resource(): url = {:?}", url);
+    println!("confilesystem20 println- delete_resource(): path = {:?}", path);
+
+    let challenge = gen_challenge();//"123456";
+    println!("confilesystem20 println- delete_resource(): challenge = {:?}", challenge);
+    let kbs_root_certs_pem = vec![];
+
+    let http_client = build_http_client(kbs_root_certs_pem)?;
+
+    // get evidence
+    let get_evidence_url = format!("{}/{KBS_URL_PREFIX}/cfs/evidence?challenge={}", url, challenge);
+    let get_evidence_response = http_client
+        .get(get_evidence_url)
+        .send()
+        .await?;
+
+    match get_evidence_response.status() {
+        reqwest::StatusCode::OK => {
+
+        },
+        _ => {
+            bail!("Request Failed, Response: {:?}", get_evidence_response.text().await?);
+        }
+    }
+
+    let cookies = get_evidence_response.cookies();
+    let mut last_cookie = "".to_string();
+    for cookie in cookies.into_iter() {
+        //println!("confilesystem20 println- delete_resource(): cookie = {:?}", cookie);
+        //println!("confilesystem20 println- delete_resource(): cookie.name() = {:?}, cookie.value() = {:?}",
+        //         cookie.name(), cookie.value());
+        //last_cookie = cookie.value().clone();
+        last_cookie = format!("{}={}", cookie.name(), cookie.value());
+    }
+    println!("confilesystem20 println- delete_resource(): last_cookie = {:?}", last_cookie);
+
+    //let rsp = get_evidence_response.text().await?;
+    let evidence = get_evidence_response.json::<EvidenceRsp>().await?;
+    //println!("set_resource(): kbs_evidence() -> evidence = {:?}", evidence);
+    println!("confilesystem20 println- delete_resource(): evidence.tee_pubkey = {:?}", evidence.tee_pubkey);
+    println!("confilesystem20 println- delete_resource(): evidence.tee_type = {:?}", evidence.tee_type);
+    println!("confilesystem20 println- delete_resource(): kbs_types::Tee::Challenge = {:?}", kbs_types::Tee::Challenge);
+
+    //TODO:  verify evidence
+    /*
+    let as_config = AsConfig::default();
+    let attestation_service_native = AttestationService::new(as_config.clone())?;
+    let as_evaluate_rsp = attestation_service_native.evaluate(evidence.tee_type, challenge, evidence.evidence)
+        .await?;
+    println!("confilesystem20 println- delete_resource(): as_evaluate_rsp = {:?}", as_evaluate_rsp);
+    */
+    let tee_type = i32_to_tee(evidence.tee_type)?;
+    let tee_verifier = verifier::to_verifier(&tee_type)?;
+    //let attestation = serde_json::from_slice::<Attestation>(evidence.evidence.as_slice())
+    //    .context("Failed to deserialize Attestation")?;
+    let evidence_string = String::from_utf8(evidence.evidence)?;
+    let attestation = Attestation {
+        tee_pubkey: evidence.tee_pubkey.clone(),
+        tee_evidence: evidence_string,
+    };
+    //let repository = LocalFs::new(&LocalFsRepoDesc::default())?;
+    let repository = Box::new(LocalFs::new(&LocalFsRepoDesc::default())?) as Box<dyn crate::plugins::kbs::resource::Repository + Send + Sync>;
+    let evaluate_result = tee_verifier.evaluate(challenge.to_string(), &attestation, &repository)
+        .await
+        .map_err(|e| anyhow!("Verifier evaluate failed: {e:?}"))?;
+    println!("confilesystem20 println- delete_resource(): evidence.evaluate_result = {:?}", evaluate_result);
+
+    let jwe = kbs_protocol::jwe::jwe(evidence.tee_pubkey, resource_bytes)?;
+    let resource_bytes_ciphertext = serde_json::to_vec(&jwe)?;
+
+    //
+    let resource_url = format!("{}/{KBS_URL_PREFIX}/resource/{}", url, path);
+    println!("confilesystem20 println- delete_resource(): resource_url = {:?}", resource_url);
+    let response = http_client
+        .delete(resource_url)
+        .header("Content-Type", "application/octet-stream")
+        .header("Cookie", last_cookie)
+        //.bearer_auth(token)
+        .body(resource_bytes_ciphertext.clone())
+        .send()
+        .await?;
+    println!("confilesystem20 println- delete_resource(): response.status() = {:?}", response.status());
     match response.status() {
         reqwest::StatusCode::OK => {
             //let body_bytes = response.bytes().await?;
@@ -236,4 +357,13 @@ fn i32_to_tee(tee_i32: i32) -> anyhow::Result<kbs_types::Tee> {
     };
 
     Ok(tee_type)
+}
+
+fn gen_challenge() -> String {
+    let random_string: String = rand::thread_rng()
+        .sample_iter(&rand::distributions::Alphanumeric)
+        .take(10)
+        .map(char::from)
+        .collect::<String>();
+    random_string
 }
