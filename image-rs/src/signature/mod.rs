@@ -57,7 +57,8 @@ pub async fn allows_image(
         ie_data.aa_attester, image_reference, file_paths.policy_path);
     //use crate::{resource, signature::image::Image};
 
-    if ie_data.aa_attester == crate::extra::token::ATTESTER_CONTROLLER
+    if ie_data.aa_attester == crate::extra::token::ATTESTER_SECURITY
+        || ie_data.aa_attester == crate::extra::token::ATTESTER_CONTROLLER
         || ie_data.aa_attester == crate::extra::token::ATTESTER_METADATA {
         if ie_data.confidential_image_digests.contains(&image_digest.to_string()) {
             slog::info!(sl(), "confilesystem12 0-In- allows_image(): image_reference = {:?}, image_digest = {:?} In ie_data.confidential_image_digests = {:?}",

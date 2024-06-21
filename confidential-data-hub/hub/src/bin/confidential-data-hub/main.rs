@@ -73,7 +73,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     //println!("cctata11 - Starting confidential-data-hub : cli.aa_attester = {:?}", cli.aa_attester);
-    plugins::kbs::set_kbs_infos(&cli.kbs_url, &cli.kbs_ld, &cli.kbs_is_emulated)
+    plugins::kbs::set_kbs_infos(&cli.aa_attester, &cli.kbs_url, &cli.kbs_ld, &cli.kbs_is_emulated)
         .await
         .context("set kbs infos failed")?;
 

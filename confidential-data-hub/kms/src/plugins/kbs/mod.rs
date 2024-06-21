@@ -44,18 +44,26 @@ enum RealClient {
 lazy_static! {
     static ref KBS_INFOS: Mutex<HashMap<String, String>> = Mutex::new({
         let mut m = HashMap::new();
+        m.insert("aa_attester".to_string(), "".to_string());
+
         m.insert("kbs_url".to_string(), "http://127.0.0.1:8080".to_string());
         m.insert("kbs_ld".to_string(), "cc_cfs_controller_2024".to_string());
         m.insert("kbs_is_emulated".to_string(), "true".to_string());
+
+        m.insert("init_got".to_string(), "false".to_string());
+        m.insert("init_controller_crp_token".to_string(), "".to_string());
+        m.insert("init_controller_attestation_report".to_string(), "".to_string());
+        m.insert("init_controller_cert_chain".to_string(), "".to_string());
         m
     });
 }
 
-pub async fn set_kbs_infos(kbs_url: &str, kbs_ld: &str, kbs_is_emulated: &str) -> Result<()>{
-    println!("confilesystem20 println- set_kbs_infos():  kbs_url = {:?}, kbs_is_emulated = {:?}",
-             kbs_url, kbs_is_emulated);
+pub async fn set_kbs_infos(aa_attester: &str, kbs_url: &str, kbs_ld: &str, kbs_is_emulated: &str) -> Result<()>{
+    println!("confilesystem20 println- set_kbs_infos():  aa_attester = {:?}, kbs_url = {:?}, kbs_is_emulated = {:?}",
+             aa_attester, kbs_url, kbs_is_emulated);
 
     let mut kbs_infos = KBS_INFOS.lock().await;
+    kbs_infos.insert("aa_attester".to_string(), aa_attester.to_string());
     kbs_infos.insert("kbs_url".to_string(), kbs_url.to_string());
     kbs_infos.insert("kbs_ld".to_string(), kbs_ld.to_string());
     kbs_infos.insert("kbs_is_emulated".to_string(), kbs_is_emulated.to_string());
@@ -77,6 +85,102 @@ pub async fn get_kbs_infos() -> anyhow::Result<cc_kbc::KBSInfos> {
         kbs_is_emulated: kbs_is_emulated.to_string() == "true".to_string(),
     };
     Ok(kbs_infos)
+}
+
+pub const ATTESTER_SECURITY: &str = "security";
+pub const ATTESTER_CONTROLLER: &str = "controller";
+pub const ATTESTER_METADATA: &str = "metadata";
+pub const ATTESTER_WORKLOAD: &str = "workload";
+
+const CONTROLLER_CRP_TOKEN_KEY: &str = "confidentialfilesystems_controllerCrpToken";
+const CONTROLLER_ATTESTATION_REPORT_KEY: &str = "confidentialfilesystems_controllerAttestationReport";
+const CONTROLLER_CERT_CHAIN_KEY: &str = "confidentialfilesystems_controllerCertChain";
+
+pub async fn get_init_extra_credential() -> anyhow::Result<attester::extra_credential::ExtraCredential> {
+    let mut kbs_infos = KBS_INFOS.lock().await;
+    let aa_attester = kbs_infos.get("aa_attester").expect("get aa_attester error");
+    println!("confilesystem21 println- get_init_extra_credential():  aa_attester = {:?}", aa_attester);
+    let init_got = kbs_infos.get("init_got").expect("get init_got error");
+    println!("confilesystem21 println- get_init_extra_credential():  init_got = {:?}", init_got);
+
+    if init_got == "true" {
+        let init_controller_crp_token = kbs_infos.get("init_controller_crp_token").expect("get init_controller_crp_token error");
+        let init_controller_attestation_report = kbs_infos.get("init_controller_attestation_report").expect("get init_controller_attestation_report error");
+        let init_controller_cert_chain = kbs_infos.get("init_controller_cert_chain").expect("get init_controller_cert_chain error");
+
+        let init_extra_credential = attester::extra_credential::ExtraCredential {
+            controller_crp_token: init_controller_crp_token.to_string(),
+            controller_attestation_report: init_controller_attestation_report.to_string(),
+            controller_cert_chain: init_controller_cert_chain.to_string(),
+            aa_attester: aa_attester.to_string(),
+            extra_request: "".to_string(),
+        };
+        return Ok(init_extra_credential);
+    }
+
+    let init_extra_credential = attester::extra_credential::ExtraCredential {
+        controller_crp_token: "".to_string(),
+        controller_attestation_report: "".to_string(),
+        controller_cert_chain: "".to_string(),
+        aa_attester: aa_attester.to_string(),
+        extra_request: "".to_string(),
+    };
+
+    match aa_attester.as_str() {
+        ATTESTER_SECURITY => {
+            return Ok(init_extra_credential);
+        },
+        ATTESTER_CONTROLLER => {
+            return Ok(init_extra_credential);
+        },
+        ATTESTER_METADATA => {},
+        ATTESTER_WORKLOAD => {},
+        _ => {
+            return Err(anyhow::anyhow!("aa_attester must be set to security/controller/metadata/workload"));
+        },
+    }
+
+    let init_controller_crp_token = match std::env::var(CONTROLLER_CRP_TOKEN_KEY) {
+        Ok(value) => { value } ,
+        Err(e) => { return Err(anyhow::anyhow!("get init_controller_crp_token e = {:?}", e)); },
+    };
+    let init_controller_attestation_report = match std::env::var(CONTROLLER_ATTESTATION_REPORT_KEY) {
+        Ok(value) => { value } ,
+        Err(e) => { return Err(anyhow::anyhow!("get init_controller_attestation_report e = {:?}", e)); },
+    };
+    let init_controller_cert_chain = match std::env::var(CONTROLLER_CERT_CHAIN_KEY) {
+        Ok(value) => { value } ,
+        Err(e) => { return Err(anyhow::anyhow!("get init_controller_cert_chain e = {:?}", e)); },
+    };
+    println!("confilesystem21 println- get_init_extra_credential():  init_controller_crp_token.len() = {:?}", init_controller_crp_token.len());
+    update_init_extra_credential(init_controller_crp_token.clone(),
+                                 init_controller_attestation_report.clone(),
+                                 init_controller_cert_chain.clone()).await;
+
+    // clear these envs
+    std::env::set_var(CONTROLLER_CRP_TOKEN_KEY, "".to_string());
+    std::env::set_var(CONTROLLER_ATTESTATION_REPORT_KEY, "".to_string());
+    std::env::set_var(CONTROLLER_CERT_CHAIN_KEY, "".to_string());
+
+    let init_extra_credential = attester::extra_credential::ExtraCredential {
+        controller_crp_token: init_controller_crp_token,
+        controller_attestation_report: init_controller_attestation_report,
+        controller_cert_chain: init_controller_cert_chain,
+        aa_attester: aa_attester.to_string(),
+        extra_request: "".to_string(),
+    };
+    Ok(init_extra_credential)
+}
+
+pub async fn update_init_extra_credential(init_controller_crp_token: String,
+                                          init_controller_attestation_report: String,
+                                          init_controller_cert_chain: String) {
+    let mut kbs_infos = KBS_INFOS.lock().await;
+
+    kbs_infos.insert("init_controller_crp_token".to_string(), init_controller_crp_token);
+    kbs_infos.insert("init_controller_attestation_report".to_string(), init_controller_attestation_report);
+    kbs_infos.insert("init_controller_cert_chain".to_string(), init_controller_cert_chain);
+    kbs_infos.insert("init_controller_cert_chain".to_string(), "true".to_string());
 }
 
 impl RealClient {

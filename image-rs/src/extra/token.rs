@@ -33,6 +33,7 @@ use crate::resource;
 //
 pub const POD_CONTAINERS_SHARE_DIR: &str = "/run/kata-containers/sandbox/";
 
+pub const ATTESTER_SECURITY: &str = "security";
 pub const ATTESTER_CONTROLLER: &str = "controller";
 pub const ATTESTER_METADATA: &str = "metadata";
 pub const ATTESTER_WORKLOAD: &str = "workload";
@@ -121,7 +122,8 @@ impl ExternalExtraData {
         info!(sl(), "confilesystem5 - ExternalExtraData.proc(): aa_kbc_params = {:?}, confidential_image_digests_str = {:?}, \
             self.aa_attester = {:?}, self.controller_crp_token.len() = {:?}",
             aa_kbc_params, confidential_image_digests_str, self.aa_attester, self.controller_crp_token.len());
-        if self.aa_attester != ATTESTER_CONTROLLER.to_string()
+        if self.aa_attester != ATTESTER_SECURITY.to_string()
+            && self.aa_attester != ATTESTER_CONTROLLER.to_string()
             && (self.controller_crp_token.len() == 0
                 || self.controller_attestation_report.len() == 0
                 || self.controller_cert_chain.len() == 0) {

@@ -3,20 +3,57 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+use std::collections::HashMap;
 use anyhow::{anyhow, bail, Context};
 use async_trait::async_trait;
+use jwt_simple::claims::JWTClaims;
+use jwt_simple::prelude::{Clock, coarsetime, Duration, Token};
+#[allow(unused_imports)]
+use jwt_simple::prelude::{
+    ES256PublicKey, Ed25519PublicKey, EdDSAPublicKeyLike, ECDSAP256PublicKeyLike, NoCustomClaims, VerificationOptions,
+};
 use kbs_protocol::{
     client::KbsClient as KbsProtocolClient,
     token_provider::{AATokenProvider, TokenProvider},
     KbsClientCapabilities, ResourceUri,
 };
+use hex::*;
+use jwt_simple::prelude::*;
 
 use crate::{Error, Result};
 
-use super::{Kbc, verifier};
+use super::{get_init_extra_credential, Kbc, verifier};
 
 fn sl() -> slog::Logger {
     slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
+}
+
+#[derive(Clone, Default, Debug, Serialize, Deserialize)]
+pub struct AuthorizedRes {
+    // Time the claims expire at
+    #[serde(
+        rename = "exp",
+        default,
+    )]
+    pub exp: u64, // Duration, // UnixTimeStamp
+
+    // Resource - This can be set to anything application-specific
+    #[serde(rename = "res", default)]
+    pub res: String,
+}
+
+//#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, Serialize, Deserialize)]
+pub struct CustomClaims {
+    // Version - This can be set to anything application-specific
+    //#[serde(rename = "svn", default)]
+    //pub svn: String,
+
+    // authorized-res
+    pub authorized_res: Vec<AuthorizedRes>,
+
+    // runtime-res
+    pub runtime_res: HashMap<String, HashMap<String, HashMap<String, String>>>,
 }
 
 #[derive(Debug)]
@@ -54,14 +91,91 @@ impl CcKbc {
             },
         })
     }
+
+    //
+    async fn auth_resource(&mut self, rid: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> anyhow::Result<attester::extra_credential::ExtraCredential> {
+        let init_extra_credential = get_init_extra_credential().await?;
+        if extra_credential.aa_attester != init_extra_credential.aa_attester {
+            return Err(anyhow::anyhow!("aa_attester: {:?} should be {:?}", extra_credential.aa_attester, init_extra_credential.aa_attester));
+        }
+
+        match extra_credential.aa_attester.as_str() {
+            super::ATTESTER_SECURITY => {
+                return Ok(init_extra_credential);
+            },
+            super::ATTESTER_CONTROLLER => {
+                return Ok(init_extra_credential);
+            },
+            super::ATTESTER_METADATA => {},
+            super::ATTESTER_WORKLOAD => {},
+            _ => {
+                return Err(anyhow::anyhow!("aa_attester must be set to security/controller/metadata/workload"));
+            },
+        }
+
+        // 1. verify jws；
+        // 2. path.res in crt.authorized_res
+        // 3. path.res in crpt.authorized_res
+        // 4. crpt.authorized_res.exp
+        let (key_user, claims) = self.verify_crp_token(&extra_credential.controller_crp_token, &init_extra_credential)
+            .await?;
+        let addr_is_ok = addr_is_ok(&key_user, &rid.repository);
+        if !addr_is_ok {
+            return Err(anyhow::anyhow!("rid.repository {:?} not key_user {:?}", rid.repository, key_user));
+        }
+        let  res_id = rid.whole_uri();
+        let authorized_res = claims.custom.authorized_res;
+        let mut can_get = can_get_res(authorized_res, &res_id);
+        if !can_get {
+            return Err(anyhow::anyhow!("res_id {:?} not in req.controller_crp_token", res_id));
+        }
+        let init_authorized_res = parse_crptpayload(&init_extra_credential.controller_crp_token)?;
+        can_get = can_get_res(init_authorized_res.authorized_res, &res_id);
+        if !can_get {
+            return Err(anyhow::anyhow!("res_id {:?} not in init.controller_crp_token", res_id));
+        }
+
+        Ok(init_extra_credential)
+    }
+
+    async fn verify_crp_token(&mut self, controller_crp_token: &str, extra_credential: &attester::extra_credential::ExtraCredential) -> anyhow::Result<(String, JWTClaims<CustomClaims>)> {
+        let metadata = Token::decode_metadata(controller_crp_token)?;
+        let kbs_key_path = match metadata.key_id() {
+            Some(value) => value,
+            _ => return Err(anyhow::anyhow!("no kid in token")),
+        };
+        println!("confilesystem21 println- verify_crp_token(): kbs_key_path = {:?}", kbs_key_path);
+        let key_user = get_addr_from_res_id(kbs_key_path)?;
+
+        let resource_uri = ResourceUri::try_from(kbs_key_path)
+            .map_err(|_| anyhow::anyhow!("illegal kbs resource uri: {kbs_key_path}"))?;
+        let pubkey_bytes = self
+            .client
+            .get_resource(resource_uri, &extra_credential)
+            .await
+            .map_err(|e| Error::KbsClientError(format!("get resource failed: {e}")))?;
+        let pubkey_str_got = String::from_utf8_lossy(&pubkey_bytes);
+        let pubkey_str = pubkey_str_got.trim_end_matches('\n');
+        println!("confilesystem21 println- verify_crp_token(): pubkey_str = {:?}", pubkey_str);
+        let claims = verify_token_internal(controller_crp_token, pubkey_str)
+            .map_err(|e| anyhow!("confilesystem21 - verify_token_internal failed: {:?}", e))?;
+        println!("confilesystem21 println- ExternalExtraData.proc(): verify_token_internal: OK -> claims = {:?}", claims);
+        println!("confilesystem21 println- ExternalExtraData.proc(): verify_token_internal: OK -> claims.custom = {:?}", claims.custom);
+        println!("confilesystem21 println- ExternalExtraData.proc(): verify_token_internal: OK -> claims.custom.runtime_res = {:?}", claims.custom.runtime_res);
+        Ok((key_user, claims))
+    }
 }
 
 #[async_trait]
 impl Kbc for CcKbc {
     async fn get_resource(&mut self, rid: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> Result<Vec<u8>> {
+        let new_extra_credential = self.auth_resource(rid.clone(), extra_credential)
+            .await
+            .map_err(|e| Error::KbsClientError(format!("auth resource failed: {e}")))?;
+
         let secret = self
             .client
-            .get_resource(rid, extra_credential)
+            .get_resource(rid, &new_extra_credential)
             .await
             .map_err(|e| Error::KbsClientError(format!("get resource failed: {e}")))?;
         Ok(secret)
@@ -101,11 +215,123 @@ impl Kbc for CcKbc {
 }
 
 // util apis
+pub fn parse_crptpayload(crp_token: &str) -> anyhow::Result<CustomClaims> {
+    let token_parts: Vec<&str> = crp_token.split('.').collect();
+    if token_parts.len() != 3 {
+        return Err(anyhow!("Invalid crp_token!"));
+    }
+
+    let payload_part_encoded = token_parts[1];
+    let payload_part_decoded = &Base64UrlSafeNoPadding::decode_to_vec(payload_part_encoded.as_bytes(), None);
+    return match payload_part_decoded {
+        Ok(payload_decoded) => match serde_json::from_slice::<CustomClaims>(&payload_decoded) {
+            Ok(claims) => Ok(claims),
+            Err(e) => Err(anyhow!("Error parsing crp_token from decoded payload:\n{}", e)),
+        },
+        Err(e) => Err(anyhow!("Error decoding crp_token:\n{}", e)),
+    }
+}
+
+pub fn verify_token_internal(token: &str, user_public_key_pem: &str) -> anyhow::Result<JWTClaims<CustomClaims>, anyhow::Error> {
+    println!("confilesystem20 println- verify_token_internal(): token = {:?}", token);
+    println!("confilesystem20 println- verify_token_internal(): user_public_key_pem = {:?}", user_public_key_pem);
+    let public_key = ES256PublicKey::from_pem(user_public_key_pem)?; // from_der, from_bytes
+    //.expect("confilesystem21 - new pubkey fail");
+    println!("confilesystem20 println- verify_token_internal(): public_key = {:?}", public_key);
+
+    let claims = public_key
+        .verify_token::<CustomClaims>(token, Some(VerificationOptions::default()))
+        .context("confilesystem21 - verify token failed")?;
+
+    println!("confilesystem20 println- verify_token_internal(): claims = {:?}", claims);
+    Ok(claims)
+}
+
+pub fn get_addr_from_res_id(res_id: &str) -> anyhow::Result<String> {
+    let mut new_res_id = res_id.to_string();
+    if !res_id.starts_with("kbs://") {
+        new_res_id = format!("{}{}", "kbs:///", res_id)
+    }
+
+    let path_slices: Vec<&str> = new_res_id.split('/').filter(|&s| !s.is_empty()).collect();
+    println!("confilesystem20 println- get_addr_from_res_id(): res_id = {:?} -> new_res_id = {:?} -> path_slices = {:?}",
+        res_id, new_res_id, path_slices);
+    if path_slices.len() < 2 {
+        return Err(anyhow!("confilesystem6 - res kid format error"));
+    }
+    let addr = path_slices[1];
+    Ok(addr.to_string())
+}
+
+pub fn can_get_res(authorized_res: Vec<AuthorizedRes>, res_id: &str) -> bool {
+    let now = coarsetime::Clock::now_since_epoch().as_secs();
+    println!("confilesystem20 println- can_get_res(): res_id = {:?}, authorized_res = {:?}; now = {:?}",
+            res_id, authorized_res, now);
+    if authorized_res.len() == 0 {
+        return true;
+    }
+
+    let mut new_res_id = res_id.to_string();
+    if !res_id.starts_with("kbs://") {
+        new_res_id = format!("{}{}", "kbs:///", res_id)
+    }
+    println!("confilesystem20 println- can_get_res(): res_id = {:?} -> new_res_id = {:?}", res_id, new_res_id);
+    let res_id_slices: Vec<&str> = new_res_id.split('/').filter(|&s| !s.is_empty()).collect();
+    if res_id_slices.len() < 4 {
+        return false;
+    }
+
+    let mut can_get = false;
+    for a_res in authorized_res {
+        // confilesystem : check pattern *
+        if a_res.res == "*"
+            || a_res.res == "*/*/*"
+            || a_res.res == "*:///*/*/*" {
+            return true;
+        }
+
+        let a_res_slices: Vec<&str> = (&a_res.res).split('/').filter(|&s| !s.is_empty()).collect();
+        if a_res_slices.len() < 4 {
+            return false;
+        }
+
+        if (a_res_slices[0] == "*:" || a_res_slices[0] == res_id_slices[0]) // "*:///*/*/*"
+            && (a_res_slices[1] == "*" || a_res_slices[1] == res_id_slices[1])
+            && (a_res_slices[2] == "*" || a_res_slices[2] == res_id_slices[2])
+            && (a_res_slices[3] == "*" || a_res_slices[3] == res_id_slices[3]) {
+            if a_res.exp > 0 && a_res.exp < now {
+                println!("confilesystem20 println- a_res.res = {:?}'s a_res.exp = {:?} < now = {:?}",
+                        a_res.res, a_res.exp, now);
+                break;
+            }
+            can_get = true;
+            break;
+        }
+    }
+    can_get
+}
+
+pub fn addr_is_ok(key_user: &str, addr: &str) -> bool {
+    if key_user.len() == 0 || key_user.to_string() == "*".to_string() {
+        return true;
+    }
+
+    if addr.to_string() != key_user.to_string() {
+        println!("confilesystem20 println- addr_is_ok(): addr = {:?} != key_user = {:?}",
+                addr.to_string(), key_user.to_string());
+        return false;
+    }
+    return true;
+}
+
+// util apis
 use rand::Rng;
 use rand_chacha::ChaChaRng;
 use rand::SeedableRng;
 use kbs_types::{Attestation, TeePubKey};
 use serde::{Serialize, Deserialize};
+//use slog::info;
+//use image_rs::extra::token::{AuthorizedRes, CustomClaims};
 use crate::plugins::kbs::resource::local_fs::{LocalFsRepoDesc, LocalFs};
 //use attestation_service::{config::Config as AsConfig, AttestationService};
 
