@@ -94,11 +94,12 @@ impl CcKbc {
 
     //
     async fn auth_resource(&mut self, rid: ResourceUri, extra_credential: &attester::extra_credential::ExtraCredential) -> anyhow::Result<attester::extra_credential::ExtraCredential> {
-        let init_extra_credential = get_init_extra_credential().await?;
+        let mut init_extra_credential = get_init_extra_credential().await?;
         if extra_credential.aa_attester != init_extra_credential.aa_attester {
             return Err(anyhow::anyhow!("aa_attester: {:?} should be {:?}", extra_credential.aa_attester, init_extra_credential.aa_attester));
         }
 
+        init_extra_credential.extra_request = extra_credential.extra_request.clone();
         match extra_credential.aa_attester.as_str() {
             super::ATTESTER_SECURITY => {
                 return Ok(init_extra_credential);
