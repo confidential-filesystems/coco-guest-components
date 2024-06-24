@@ -14,7 +14,9 @@ sleep 3
 
 #
 export FS_NAME=fs1
+
 export ACCOUNT_ADDR=0xac0618f0b105faf17b8e1370f98febdb2e1ffc5b
+
 
 # get secret resource
 curl -X GET \
