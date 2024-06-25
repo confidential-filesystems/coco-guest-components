@@ -47,7 +47,7 @@ lazy_static! {
         m.insert("aa_attester".to_string(), "".to_string());
 
         m.insert("kbs_url".to_string(), "http://127.0.0.1:8080".to_string());
-        m.insert("kbs_ld".to_string(), "cc_cfs_controller_2024".to_string());
+        m.insert("kbs_ld".to_string(), "confidential_filesystems_default_attester_security".to_string());
         m.insert("kbs_is_emulated".to_string(), "true".to_string());
 
         m.insert("init_got".to_string(), "false".to_string());

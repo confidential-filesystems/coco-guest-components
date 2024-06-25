@@ -27,10 +27,10 @@ pub const ENV_CFS_CONTROLLER_ID: &str  ="CFS_CONTROLLER_ID";
 pub const ENV_CFS_METADATA_ID: &str  ="CFS_METADATA_ID";
 pub const ENV_CFS_WORKLOAD_ID: &str  ="CFS_WORKLOAD_ID";
 
-pub const CFS_SECURITY_ID_DEFAULT: &str  ="cc_cfs_security_2024";
-pub const CFS_CONTROLLER_ID_DEFAULT: &str  ="cc_cfs_controller_2024";
-pub const CFS_METADATA_ID_DEFAULT: &str  ="cc_cfs_metadata_2024";
-pub const CFS_WORKLOAD_ID_DEFAULT: &str  ="cc_cfs_workload_2024";
+pub const CFS_SECURITY_ID_DEFAULT: &str  ="confidential_filesystems_default_attester_security";
+pub const CFS_CONTROLLER_ID_DEFAULT: &str  ="confidential_filesystems_default_attester_controller";
+pub const CFS_METADATA_ID_DEFAULT: &str  ="confidential_filesystems_default_attester_metadata";
+pub const CFS_WORKLOAD_ID_DEFAULT: &str  ="confidential_filesystems_default_attester_workload";
 
 const EMULATED_GUEST_SVN: u32 = std::u32::MAX;
 
