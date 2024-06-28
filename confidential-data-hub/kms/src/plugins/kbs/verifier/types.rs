@@ -19,7 +19,7 @@ pub const AUTHED_CERT_RES_FOR_CONTROLLER: &str = "*/certs/client";
 pub struct CRPTPayload {
     // iat
     pub authorized_res: Vec<AuthorizedRes>,
-    pub runtime_res: HashMap<String, HashMap<String, String>,>,
+    pub runtime_res: HashMap<String, HashMap<String, HashMap<String, String>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
