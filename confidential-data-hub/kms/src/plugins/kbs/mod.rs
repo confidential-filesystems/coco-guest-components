@@ -95,18 +95,20 @@ pub const ATTESTER_WORKLOAD: &str = "workload";
 const CONTROLLER_CRP_TOKEN_KEY: &str = "confidentialfilesystems_controllerCrpToken";
 const CONTROLLER_ATTESTATION_REPORT_KEY: &str = "confidentialfilesystems_controllerAttestationReport";
 const CONTROLLER_CERT_CHAIN_KEY: &str = "confidentialfilesystems_controllerCertChain";
+const POD_CONTAINERS_SHARE_DIR: &str = "/run/kata-containers/sandbox/";
 
 pub async fn get_init_extra_credential() -> anyhow::Result<attester::extra_credential::ExtraCredential> {
     let mut kbs_infos = KBS_INFOS.lock().await;
-    let aa_attester = kbs_infos.get("aa_attester").expect("get aa_attester error");
+    let kbs_infos_clone = kbs_infos.clone();
+    let aa_attester = kbs_infos_clone.get("aa_attester").expect("get aa_attester error");
     println!("confilesystem21 println- get_init_extra_credential():  aa_attester = {:?}", aa_attester);
-    let init_got = kbs_infos.get("init_got").expect("get init_got error");
+    let init_got = kbs_infos_clone.get("init_got").expect("get init_got error");
     println!("confilesystem21 println- get_init_extra_credential():  init_got = {:?}", init_got);
 
     if init_got == "true" {
-        let init_controller_crp_token = kbs_infos.get("init_controller_crp_token").expect("get init_controller_crp_token error");
-        let init_controller_attestation_report = kbs_infos.get("init_controller_attestation_report").expect("get init_controller_attestation_report error");
-        let init_controller_cert_chain = kbs_infos.get("init_controller_cert_chain").expect("get init_controller_cert_chain error");
+        let init_controller_crp_token = kbs_infos_clone.get("init_controller_crp_token").expect("get init_controller_crp_token error");
+        let init_controller_attestation_report = kbs_infos_clone.get("init_controller_attestation_report").expect("get init_controller_attestation_report error");
+        let init_controller_cert_chain = kbs_infos_clone.get("init_controller_cert_chain").expect("get init_controller_cert_chain error");
 
         let init_extra_credential = attester::extra_credential::ExtraCredential {
             controller_crp_token: init_controller_crp_token.to_string(),
@@ -140,22 +142,53 @@ pub async fn get_init_extra_credential() -> anyhow::Result<attester::extra_crede
         },
     }
 
-    let init_controller_crp_token = match std::env::var(CONTROLLER_CRP_TOKEN_KEY) {
-        Ok(value) => { value } ,
-        Err(e) => { return Err(anyhow::anyhow!("get init_controller_crp_token e = {:?}", e)); },
+    // TODO do not use file share
+    println!("confilesystem21 println- get_init_extra_credential(): try to get CONTROLLER_CRP_TOKEN_KEY from file");
+    // controller_crp_token
+    let controller_crp_token_file = POD_CONTAINERS_SHARE_DIR.to_owned() + CONTROLLER_CRP_TOKEN_KEY;
+    let init_controller_crp_token: std::result::Result<String, Error> = match fs::read_to_string(controller_crp_token_file.clone()) {
+        Ok(content) => {
+            Ok(content)
+        },
+        Err(e) => {
+            println!("confilesystem21 println- get_init_extra_credential():  CONTROLLER_CRP_TOKEN_KEY not found");
+            return Err(anyhow::anyhow!("get init_controller_crp_token e = {:?}", e));
+        }
     };
-    let init_controller_attestation_report = match std::env::var(CONTROLLER_ATTESTATION_REPORT_KEY) {
-        Ok(value) => { value } ,
-        Err(e) => { return Err(anyhow::anyhow!("get init_controller_attestation_report e = {:?}", e)); },
+
+    // controller_attestation_report
+    let controller_attestation_report_file = POD_CONTAINERS_SHARE_DIR.to_owned() + CONTROLLER_ATTESTATION_REPORT_KEY;
+    let init_controller_attestation_report: std::result::Result<String, Error> = match fs::read_to_string(controller_attestation_report_file.clone()) {
+        Ok(content) => {
+            Ok(content)
+        },
+        Err(e) => {
+            println!("confilesystem21 println- get_init_extra_credential():  CONTROLLER_ATTESTATION_REPORT_KEY not found");
+            return Err(anyhow::anyhow!("get init_controller_attestation_report e = {:?}", e));
+        }
     };
-    let init_controller_cert_chain = match std::env::var(CONTROLLER_CERT_CHAIN_KEY) {
-        Ok(value) => { value } ,
-        Err(e) => { return Err(anyhow::anyhow!("get init_controller_cert_chain e = {:?}", e)); },
+
+    // controller_cert_chain
+    let controller_cert_chain_file = POD_CONTAINERS_SHARE_DIR.to_owned() + CONTROLLER_CERT_CHAIN_KEY;
+    let init_controller_cert_chain: std::result::Result<String, Error> = match fs::read_to_string(controller_cert_chain_file.clone()) {
+        Ok(content) => {
+            Ok(content)
+        },
+        Err(e) => {
+            println!("confilesystem21 println- get_init_extra_credential():  CONTROLLER_CERT_CHAIN_KEY not found");
+            return Err(anyhow::anyhow!("get init_controller_cert_chain e = {:?}", e));
+        }
     };
-    println!("confilesystem21 println- get_init_extra_credential():  init_controller_crp_token.len() = {:?}", init_controller_crp_token.len());
-    update_init_extra_credential(init_controller_crp_token.clone(),
-                                 init_controller_attestation_report.clone(),
-                                 init_controller_cert_chain.clone()).await;
+
+    let init_controller_crp_token_str= init_controller_crp_token.expect("fail to get controller crp token");
+    let init_controller_attestation_report_str= init_controller_attestation_report.expect("fail to get controller attestation report");
+    let init_controller_cert_chain_str= init_controller_cert_chain.expect("fail to get controller cert chain");
+    println!("confilesystem21 println- get_init_extra_credential():  init_controller_crp_token.len() = {:?}", init_controller_crp_token_str.len());
+
+    kbs_infos.insert("init_controller_crp_token".to_string(), init_controller_crp_token_str.clone());
+    kbs_infos.insert("init_controller_attestation_report".to_string(), init_controller_attestation_report_str.clone());
+    kbs_infos.insert("init_controller_cert_chain".to_string(), init_controller_cert_chain_str.clone());
+    kbs_infos.insert("init_got".to_string(), "true".to_string());
 
     // clear these envs
     std::env::set_var(CONTROLLER_CRP_TOKEN_KEY, "".to_string());
@@ -163,9 +196,9 @@ pub async fn get_init_extra_credential() -> anyhow::Result<attester::extra_crede
     std::env::set_var(CONTROLLER_CERT_CHAIN_KEY, "".to_string());
 
     let init_extra_credential = attester::extra_credential::ExtraCredential {
-        controller_crp_token: init_controller_crp_token,
-        controller_attestation_report: init_controller_attestation_report,
-        controller_cert_chain: init_controller_cert_chain,
+        controller_crp_token: init_controller_crp_token_str,
+        controller_attestation_report: init_controller_attestation_report_str,
+        controller_cert_chain: init_controller_cert_chain_str,
         aa_attester: aa_attester.to_string(),
         extra_request: "".to_string(),
     };
@@ -180,7 +213,7 @@ pub async fn update_init_extra_credential(init_controller_crp_token: String,
     kbs_infos.insert("init_controller_crp_token".to_string(), init_controller_crp_token);
     kbs_infos.insert("init_controller_attestation_report".to_string(), init_controller_attestation_report);
     kbs_infos.insert("init_controller_cert_chain".to_string(), init_controller_cert_chain);
-    kbs_infos.insert("init_controller_cert_chain".to_string(), "true".to_string());
+    kbs_infos.insert("init_got".to_string(), "true".to_string());
 }
 
 impl RealClient {
