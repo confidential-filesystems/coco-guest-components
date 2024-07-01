@@ -147,9 +147,11 @@ impl CcKbc {
         };
         println!("confilesystem21 println- verify_crp_token(): kbs_key_path = {:?}", kbs_key_path);
         let key_user = get_addr_from_res_id(kbs_key_path)?;
+        let kbs_pub_key_path = kbs_key_path.replace("ecsk", "ecpk");
+        println!("confilesystem21 println- verify_crp_token(): kbs_pub_key_path = {:?}", kbs_pub_key_path);
 
-        let resource_uri = ResourceUri::try_from(kbs_key_path)
-            .map_err(|_| anyhow::anyhow!("illegal kbs resource uri: {kbs_key_path}"))?;
+        let resource_uri = ResourceUri::try_from(kbs_pub_key_path.as_str())
+            .map_err(|_| anyhow::anyhow!("illegal kbs resource uri: {kbs_pub_key_path}"))?;
         let pubkey_bytes = self
             .client
             .get_resource(resource_uri, &extra_credential)
