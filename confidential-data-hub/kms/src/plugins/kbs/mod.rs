@@ -142,7 +142,6 @@ pub async fn get_init_extra_credential() -> anyhow::Result<attester::extra_crede
         },
     }
 
-    // TODO do not use file share
     println!("confilesystem21 println- get_init_extra_credential(): try to get CONTROLLER_CRP_TOKEN_KEY from file");
     // controller_crp_token
     let controller_crp_token_file = POD_CONTAINERS_SHARE_DIR.to_owned() + CONTROLLER_CRP_TOKEN_KEY;
@@ -189,11 +188,6 @@ pub async fn get_init_extra_credential() -> anyhow::Result<attester::extra_crede
     kbs_infos.insert("init_controller_attestation_report".to_string(), init_controller_attestation_report_str.clone());
     kbs_infos.insert("init_controller_cert_chain".to_string(), init_controller_cert_chain_str.clone());
     kbs_infos.insert("init_got".to_string(), "true".to_string());
-
-    // clear these envs
-    std::env::set_var(CONTROLLER_CRP_TOKEN_KEY, "".to_string());
-    std::env::set_var(CONTROLLER_ATTESTATION_REPORT_KEY, "".to_string());
-    std::env::set_var(CONTROLLER_CERT_CHAIN_KEY, "".to_string());
 
     let init_extra_credential = attester::extra_credential::ExtraCredential {
         controller_crp_token: init_controller_crp_token_str,
