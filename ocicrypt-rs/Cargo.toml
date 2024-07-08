@@ -14,20 +14,20 @@ url.workspace = true
 resource_uri.workspace = true
 aes = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }
-attestation_agent = { path = "../attestation-agent/lib", optional = true  }
+attestation_agent = { path = "../attestation-agent/lib", optional = true }
 base64.workspace = true
 base64-serde = { workspace = true, optional = true }
 cfg-if.workspace = true
 ctr = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true }
 josekit = { version = ">=0.7", optional = true }
-kbc = { path = "../attestation-agent/kbc", optional = true  }
+kbc = { path = "../attestation-agent/kbc", optional = true }
 lazy_static.workspace = true
 openssl = { workspace = true, features = ["vendored"], optional = true }
 pin-project-lite = { version = "0.2.9", optional = true }
 protobuf = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
-ring = { workspace = true, optional = true}
+ring = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2 = { workspace = true, optional = true }
@@ -36,7 +36,8 @@ tonic = { workspace = true, optional = true }
 ttrpc = { workspace = true, features = ["async"], optional = true }
 # Note: this crate sets the slog 'max_*' features which allows the log level
 # to be modified at runtime.
-logging = { path = "../../kata-containers/src/libs/logging" }
+# logging = { path = "../../kata-containers/src/libs/logging" }
+logging = { git = "https://github.com/confidential-filesystems/kata-containers", branch = "cc-0.8.0-filesystem", package = "logging" }
 slog = "2.5.2"
 slog-scope = "4.1.2"
 slog-term = "2.9.0"
@@ -58,7 +59,7 @@ ttrpc-codegen = { workspace = true, optional = true }
 
 [dev-dependencies]
 aes-gcm.workspace = true
-openssl = { workspace = true, features = ["vendored"]}
+openssl = { workspace = true, features = ["vendored"] }
 tokio = { workspace = true, features = ["time", "signal"] }
 
 [features]
@@ -68,21 +69,59 @@ default = ["block-cipher-openssl", "keywrap-jwe", "keywrap-keyprovider-cmd"]
 eaa_kbc = ["keywrap-keyprovider-native", "attestation_agent/eaa_kbc"]
 
 # Use cc kbc + SGX to request KEK
-cc_kbc_sgx = ["keywrap-keyprovider-native", "attestation_agent/cc_kbc", "attestation_agent/sgx-attester"]
+cc_kbc_sgx = [
+    "keywrap-keyprovider-native",
+    "attestation_agent/cc_kbc",
+    "attestation_agent/sgx-attester",
+]
 
 async-io = ["tokio"]
 
 block-cipher = []
 # Use ring as pseudo random number generator
-block-cipher-ring = ["aes", "base64-serde", "ctr", "hmac", "ring", "pin-project-lite", "sha2", "block-cipher"]
+block-cipher-ring = [
+    "aes",
+    "base64-serde",
+    "ctr",
+    "hmac",
+    "ring",
+    "pin-project-lite",
+    "sha2",
+    "block-cipher",
+]
 # Use openssl as pseudo random number generator
-block-cipher-openssl = ["aes", "base64-serde", "ctr", "hmac", "openssl", "pin-project-lite", "sha2", "block-cipher"]
+block-cipher-openssl = [
+    "aes",
+    "base64-serde",
+    "ctr",
+    "hmac",
+    "openssl",
+    "pin-project-lite",
+    "sha2",
+    "block-cipher",
+]
 
 keywrap-jwe = ["josekit"]
 keywrap-keyprovider = []
 keywrap-keyprovider-cmd = ["keywrap-keyprovider"]
-keywrap-keyprovider-grpc = ["keywrap-keyprovider", "prost", "tonic", "tokio/net"]
-keywrap-keyprovider-ttrpc = ["keywrap-keyprovider", "protobuf", "async-trait", "ttrpc", "tokio"]
-keywrap-keyprovider-native = ["keywrap-keyprovider", "tokio/net", "tokio/sync", "attestation_agent"]
+keywrap-keyprovider-grpc = [
+    "keywrap-keyprovider",
+    "prost",
+    "tonic",
+    "tokio/net",
+]
+keywrap-keyprovider-ttrpc = [
+    "keywrap-keyprovider",
+    "protobuf",
+    "async-trait",
+    "ttrpc",
+    "tokio",
+]
+keywrap-keyprovider-native = [
+    "keywrap-keyprovider",
+    "tokio/net",
+    "tokio/sync",
+    "attestation_agent",
+]
 gen-proto-grpc = ["tonic-build"]
 gen-proto-ttrpc = ["ttrpc-codegen"]
