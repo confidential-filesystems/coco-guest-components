@@ -125,8 +125,8 @@ impl SecureChannel {
 
     /// Check whether the resource of the uri has been downloaded.
     /// Return Some(_) if exists, and return None if not.
-    async fn check_local(&self, uri: &str) -> Result<Option<Vec<u8>>> {
-        let file_path = self.get_filepath(uri);
+    async fn check_local(&self, uri: &str, extra_request: &str) -> Result<Option<Vec<u8>>> {
+        let file_path = self.get_filepath(uri, extra_request);
         match Path::new(&file_path).exists() {
             true => {
                 let contents = fs::read(&file_path).await?;
@@ -137,9 +137,10 @@ impl SecureChannel {
     }
 
     /// Get the localpath to store the kbs resource in the local filesystem
-    fn get_filepath(&self, uri: &str) -> String {
+    fn get_filepath(&self, uri: &str, extra_request: &str) -> String {
         let mut sha256 = Sha256::new();
         sha256.update(uri.as_bytes());
+        sha256.update(extra_request.as_bytes());
         format!("{}/{:x}", self.storage_path, sha256.finalize())
     }
 }
@@ -153,7 +154,7 @@ impl Protocol for SecureChannel {
     /// for more information.
     async fn get_resource(&mut self, resource_uri: &str, ie_data: &crate::extra::token::InternalExtraData, extra_request: &str) -> Result<Vec<u8>> {
         slog::info!(sl(), "confilesystem6 - SecureChannel.get_resource(): resource_uri = {:?}", resource_uri);
-        if let Some(res) = self.check_local(resource_uri).await? {
+        if let Some(res) = self.check_local(resource_uri, extra_request).await? {
             return Ok(res);
         }
 
@@ -174,7 +175,7 @@ impl Protocol for SecureChannel {
             .get_resource(&self.kbc_name, &resource_path, &self.kbs_uri, ie_data, extra_request)
             .await?;
 
-        let path = self.get_filepath(resource_uri);
+        let path = self.get_filepath(resource_uri, extra_request);
         fs::write(path, &res).await?;
         Ok(res)
     }
