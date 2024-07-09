@@ -11,12 +11,17 @@ edition = "2021"
 [dependencies]
 # std = "1.76.0"
 anyhow.workspace = true
-async-compression = { version = "0.4.1", features = ["futures-io", "tokio", "gzip", "zstd"] }
+async-compression = { version = "0.4.1", features = [
+    "futures-io",
+    "tokio",
+    "gzip",
+    "zstd",
+] }
 async-trait.workspace = true
 attestation_agent = { path = "../attestation-agent/lib", default-features = false, optional = true }
 base64.workspace = true
 cfg-if = { workspace = true, optional = true }
-devicemapper = { version =  "0.33.5", optional = true }
+devicemapper = { version = "0.33.5", optional = true }
 dircpy = { version = "0.3.12", optional = true }
 flate2 = "1.0"
 fs_extra = { version = "1.2.0", optional = true }
@@ -28,7 +33,8 @@ libc = "0.2"
 
 # Note: this crate sets the slog 'max_*' features which allows the log level
 # to be modified at runtime.
-logging = { path = "../../kata-containers/src/libs/logging" }
+# logging = { path = "../../kata-containers/src/libs/logging" }
+logging = { git = "https://github.com/confidential-filesystems/kata-containers", branch = "cc-0.8.0-filesystem", package = "logging" }
 slog = "2.5.2"
 slog-scope = "4.1.2"
 slog-term = "2.9.0"
@@ -44,32 +50,39 @@ coarsetime = "0.1.23"
 #kbc = { path = "../attestation-agent/kbc", optional = true  }
 
 log = "0.4.14"
-loopdev = { git = "https://github.com/mdaffin/loopdev", rev = "c9f91e8f0326ce8a3364ac911e81eb32328a5f27"}
+loopdev = { git = "https://github.com/mdaffin/loopdev", rev = "c9f91e8f0326ce8a3364ac911e81eb32328a5f27" }
 nix = { version = "0.26", optional = true }
 oci-distribution = { git = "https://github.com/krustlet/oci-distribution.git", rev = "f44124c", default-features = false, optional = true }
 oci-spec = "0.6.2"
-ocicrypt-rs = { path = "../ocicrypt-rs", default-features = false, features = ["async-io"], optional = true }
+ocicrypt-rs = { path = "../ocicrypt-rs", default-features = false, features = [
+    "async-io",
+], optional = true }
 prost = { workspace = true, optional = true }
 protobuf = { workspace = true, optional = true }
 reqwest = { workspace = true, features = ["json"], optional = true }
-sequoia-openpgp = { version = "1.7.0", default-features = false, features = ["compression", "crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"], optional = true }
+sequoia-openpgp = { version = "1.7.0", default-features = false, features = [
+    "compression",
+    "crypto-rust",
+    "allow-experimental-crypto",
+    "allow-variable-time-crypto",
+], optional = true }
 serde = { workspace = true, features = ["serde_derive", "rc"] }
 serde_json.workspace = true
 serde_yaml = { version = "0.9", optional = true }
 sha2.workspace = true
-sigstore = { git = "https://github.com/sigstore/sigstore-rs.git", rev = "69e8f33", default-features = false, optional = true}
+sigstore = { git = "https://github.com/sigstore/sigstore-rs.git", rev = "69e8f33", default-features = false, optional = true }
 strum.workspace = true
 strum_macros = "0.25"
 tar = "0.4.37"
 tokio.workspace = true
 tonic = { workspace = true, optional = true }
-ttrpc = { workspace = true, features = [ "async" ], optional = true }
+ttrpc = { workspace = true, features = ["async"], optional = true }
 url = "2.2.2"
 walkdir = "2"
 zstd = "0.12"
 
-nydus-api = { version = "0.3.0", optional = true}
-nydus-service = { version = "0.3.0", features = ["coco"], optional = true}
+nydus-api = { version = "0.3.0", optional = true }
+nydus-service = { version = "0.3.0", features = ["coco"], optional = true }
 
 [build-dependencies]
 anyhow.workspace = true
@@ -96,32 +109,103 @@ tokio = { workspace = true, features = ["process"] }
 # exclude = ["scripts/attestation_agent/app"]
 
 [features]
-default = ["snapshot-overlayfs", "signature-cosign-rustls", "keywrap-grpc", "oci-distribution-rustls"]
+default = [
+    "snapshot-overlayfs",
+    "signature-cosign-rustls",
+    "keywrap-grpc",
+    "oci-distribution-rustls",
+]
 
 # This will be based on `ring` dependency
-kata-cc-rustls-tls = ["encryption-ring", "keywrap-ttrpc", "snapshot-overlayfs", "signature-cosign-rustls", "signature-simple", "getresource", "oci-distribution/rustls-tls"]
-enclave-cc-eaakbc-rustls-tls = ["encryption-ring", "keywrap-native", "eaa-kbc", "snapshot-unionfs", "signature-simple", "getresource", "signature-cosign-rustls", "oci-distribution-rustls"]
-enclave-cc-cckbc-rustls-tls = ["encryption-ring", "keywrap-native", "cc-kbc-sgx", "snapshot-unionfs", "signature-simple", "getresource", "signature-cosign-rustls", "oci-distribution-rustls"]
+kata-cc-rustls-tls = [
+    "encryption-ring",
+    "keywrap-ttrpc",
+    "snapshot-overlayfs",
+    "signature-cosign-rustls",
+    "signature-simple",
+    "getresource",
+    "oci-distribution/rustls-tls",
+]
+enclave-cc-eaakbc-rustls-tls = [
+    "encryption-ring",
+    "keywrap-native",
+    "eaa-kbc",
+    "snapshot-unionfs",
+    "signature-simple",
+    "getresource",
+    "signature-cosign-rustls",
+    "oci-distribution-rustls",
+]
+enclave-cc-cckbc-rustls-tls = [
+    "encryption-ring",
+    "keywrap-native",
+    "cc-kbc-sgx",
+    "snapshot-unionfs",
+    "signature-simple",
+    "getresource",
+    "signature-cosign-rustls",
+    "oci-distribution-rustls",
+]
 
 # This will be based on `openssl` dependency
-kata-cc-native-tls = ["encryption-openssl", "keywrap-ttrpc", "snapshot-overlayfs", "signature-cosign-native", "signature-simple", "getresource", "oci-distribution/native-tls"]
-enclave-cc-eaakbc-native-tls = ["encryption-openssl", "keywrap-native", "eaa-kbc", "snapshot-unionfs", "signature-simple", "getresource", "signature-cosign-native", "oci-distribution-native"]
-enclave-cc-cckbc-native-tls = ["encryption-openssl", "keywrap-native", "cc-kbc-sgx", "snapshot-unionfs", "signature-simple", "getresource", "signature-cosign-native", "oci-distribution-native"]
+kata-cc-native-tls = [
+    "encryption-openssl",
+    "keywrap-ttrpc",
+    "snapshot-overlayfs",
+    "signature-cosign-native",
+    "signature-simple",
+    "getresource",
+    "oci-distribution/native-tls",
+]
+enclave-cc-eaakbc-native-tls = [
+    "encryption-openssl",
+    "keywrap-native",
+    "eaa-kbc",
+    "snapshot-unionfs",
+    "signature-simple",
+    "getresource",
+    "signature-cosign-native",
+    "oci-distribution-native",
+]
+enclave-cc-cckbc-native-tls = [
+    "encryption-openssl",
+    "keywrap-native",
+    "cc-kbc-sgx",
+    "snapshot-unionfs",
+    "signature-simple",
+    "getresource",
+    "signature-cosign-native",
+    "oci-distribution-native",
+]
 
 encryption = ["ocicrypt-rs/block-cipher"]
 encryption-ring = ["ocicrypt-rs/block-cipher-ring", "encryption"]
 encryption-openssl = ["ocicrypt-rs/block-cipher-openssl", "encryption"]
 
 keywrap-cmd = ["ocicrypt-rs/keywrap-keyprovider-cmd"]
-keywrap-grpc = ["ocicrypt-rs/keywrap-keyprovider-grpc", "prost", "tonic", "tonic-build"]
+keywrap-grpc = [
+    "ocicrypt-rs/keywrap-keyprovider-grpc",
+    "prost",
+    "tonic",
+    "tonic-build",
+]
 keywrap-native = ["ocicrypt-rs/keywrap-keyprovider-native", "attestation_agent"]
-keywrap-ttrpc = ["ocicrypt-rs/keywrap-keyprovider-ttrpc", "dep:ttrpc", "dep:protobuf", "ttrpc-codegen"]
+keywrap-ttrpc = [
+    "ocicrypt-rs/keywrap-keyprovider-ttrpc",
+    "dep:ttrpc",
+    "dep:protobuf",
+    "ttrpc-codegen",
+]
 
 # Enable keywrap-jwe to decrypt image
 keywrap-jwe = ["ocicrypt-rs/keywrap-jwe"]
 
 eaa-kbc = ["attestation_agent/eaa_kbc", "ocicrypt-rs/eaa_kbc"]
-cc-kbc-sgx = ["attestation_agent/cc_kbc", "attestation_agent/sgx-attester", "ocicrypt-rs/cc_kbc_sgx"]
+cc-kbc-sgx = [
+    "attestation_agent/cc_kbc",
+    "attestation_agent/sgx-attester",
+    "ocicrypt-rs/cc_kbc_sgx",
+]
 
 signature = ["hex"]
 signature-cosign = ["signature", "futures"]
@@ -137,7 +221,7 @@ signature-simple = ["signature", "sequoia-openpgp", "serde_yaml"]
 snapshot-overlayfs = ["nix"]
 snapshot-unionfs = ["nix", "dircpy", "fs_extra"]
 
-getresource = [ "lazy_static", "cfg-if" ]
+getresource = ["lazy_static", "cfg-if"]
 
 nydus = ["lazy_static", "nydus-api", "nydus-service"]
 

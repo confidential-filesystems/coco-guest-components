@@ -24,8 +24,19 @@ pub trait ApiHandler: Send {
 
     // Build octet-stream response for bytes data.
     fn octet_stream_response(&self, data: Vec<u8>) -> Result<Response<Body>> {
+        let final_status = if let core::result::Result::Ok(body_str) = String::from_utf8(data.clone()) {
+            if body_str.contains("resource Not Found (Error 404)") {
+                StatusCode::NOT_FOUND
+            } else if body_str.contains("[CDH] [ERROR]") {
+                StatusCode::INTERNAL_SERVER_ERROR
+            } else {
+                StatusCode::OK
+            }
+        } else {
+            StatusCode::OK
+        };
         Ok(Response::builder()
-            .status(StatusCode::OK)
+            .status(final_status)
             .header(header::CONTENT_TYPE, "application/octet-stream")
             .body(Body::from(data))?)
     }
@@ -93,14 +104,10 @@ impl Router {
             match self.routes.get(root_path) {
                 Some(handler) => {
                     match handler.handle_request(remote_addr, &local_url, req).await {
-                        Ok(resp) => return Ok(resp),
+                        core::result::Result::Ok(resp) => return Ok(resp),
                         Err(e) => {
-                            if e.to_string().contains("resource Not Found (Error 404)") {
-                                return Ok(Response::builder().status(404).body(Body::from(e.to_string()))?);
-                            } else {
-                                println!("Error handling request: {}", e);
-                                return Ok(Response::builder().status(500).body(Body::from(e.to_string()))?);
-                            }
+                            println!("Error handling request: {}", e);
+                            return Ok(Response::builder().status(500).body(Body::from(e.to_string()))?);
                         },
                     }
                 },
