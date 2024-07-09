@@ -91,7 +91,19 @@ impl Router {
             println!("root_path {}, url_path {}", root_path, url_path);
             let local_url = url_path.to_string();
             match self.routes.get(root_path) {
-                Some(handler) => return handler.handle_request(remote_addr, &local_url, req).await,
+                Some(handler) => {
+                    match handler.handle_request(remote_addr, &local_url, req).await {
+                        Ok(resp) => return Ok(resp),
+                        Err(e) => {
+                            if e.to_string().contains("resource Not Found (Error 404)") {
+                                return Ok(Response::builder().status(404).body(Body::from(e.to_string()))?);
+                            } else {
+                                println!("Error handling request: {}", e);
+                                return Ok(Response::builder().status(500).body(Body::from(e.to_string()))?);
+                            }
+                        },
+                    }
+                },
                 None => return Ok(Response::builder().status(404).body(Body::empty())?),
             }
         }
