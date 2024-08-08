@@ -2856,6 +2856,7 @@ dependencies = [
 [[package]]
 name = "kbs-types"
 version = "0.4.0"
+source = "git+https://github.com/confidential-filesystems/virtee-kbs-types?branch=c90df0e-filesystem#08c5adef2bdfc1ff0922d6324f1252ede9254d59"
 dependencies = [
  "serde",
  "serde_json",
@@ -3092,6 +3093,7 @@ checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 [[package]]
 name = "logging"
 version = "0.1.0"
+source = "git+https://github.com/confidential-filesystems/kata-containers?branch=cc-0.8.0-filesystem#d7907a305168824a35a2d35506663b88ee0a346e"
 dependencies = [
  "serde_json",
  "slog",

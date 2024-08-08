@@ -10,6 +10,8 @@ pub mod sample;
 
 pub mod extra_credential;
 
+pub mod types;
+
 #[cfg(feature = "snp-attester")]
 pub mod emulate;
 
@@ -65,7 +67,11 @@ pub trait Attester {
     /// Call the hardware driver to get the Hardware specific evidence.
     /// The parameter `report_data` will be used as the user input of the
     /// evidence to avoid reply attack.
-    async fn get_evidence(&self, report_data: Vec<u8>, extra_credential: &extra_credential::ExtraCredential) -> Result<String>;
+    async fn get_evidence(
+        &self,
+        report_data: Vec<u8>,
+        extra_credential: &extra_credential::ExtraCredential,
+    ) -> Result<String>;
 }
 
 // Detect which TEE platform the KBC running environment is.

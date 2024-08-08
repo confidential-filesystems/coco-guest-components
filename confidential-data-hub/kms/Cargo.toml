@@ -38,7 +38,8 @@ slog = "2.5.2"
 slog-scope = "4.1.2"
 slog-term = "2.9.0"
 attester = { path = "../../attestation-agent/attester", default-features = false }
-kbs-types = { path = "../../../virtee-kbs-types"}
+#kbs-types = { path = "../../../virtee-kbs-types"}
+kbs-types = { git = "https://github.com/confidential-filesystems/virtee-kbs-types", branch = "c90df0e-filesystem" }
 #kbs = { path = "../../../coco-trustee"}
 #as-types = {path = "../../../coco-attestation-service/as-types"}
 #attestation-service = { path = "../../../coco-attestation-service/attestation-service", default-features = false, optional = true }
