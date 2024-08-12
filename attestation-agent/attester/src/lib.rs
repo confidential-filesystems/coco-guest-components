@@ -10,7 +10,7 @@ pub mod sample;
 
 pub mod extra_credential;
 
-pub mod types;
+//pub mod types;
 
 #[cfg(feature = "snp-attester")]
 pub mod emulate;
