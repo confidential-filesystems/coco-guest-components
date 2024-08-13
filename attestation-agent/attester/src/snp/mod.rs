@@ -107,7 +107,7 @@ impl Attester for SnpAttester {
 
             let evidence = get_ra_evidence(report_data, _extra_credential)?;
             log::info!(
-                "confilesystem10 - EmulateAttester.get_evidence(): evidence = {:?}",
+                "confilesystem5 - SnpAttester.get_evidence(): evidence = {:?}",
                 evidence
             );
             serde_json::to_string(&evidence).context("Serialize SNP evidence failed")
@@ -120,7 +120,7 @@ fn get_ra_evidence(
     extra_credential: &crate::extra_credential::ExtraCredential,
 ) -> Result<RAEvidence> {
     log::info!(
-        "confilesystem10 - get_ra_evidence(): extra_credential.aa_attester = {:?}",
+        "confilesystem5 - get_ra_evidence(): extra_credential.aa_attester = {:?}",
         extra_credential.aa_attester
     );
     let mut ra_evidence = RAEvidence::default();
@@ -130,7 +130,16 @@ fn get_ra_evidence(
             ra_evidence = match get_controller_ra_evidence(report_data.clone(), extra_credential) {
                 core::result::Result::Ok(ra_evidence_content) => ra_evidence_content,
                 Err(e) => bail!(
-                    "confilesystem10 - fail to get controller emulate quoute: e = {:?}",
+                    "confilesystem5 - fail to get controller snp quoute: e = {:?}",
+                    e
+                ),
+            };
+        }
+        ATTESTER_SECURITY => {
+            ra_evidence = match get_controller_ra_evidence(report_data.clone(), extra_credential) {
+                core::result::Result::Ok(ra_evidence_content) => ra_evidence_content,
+                Err(e) => bail!(
+                    "confilesystem5 - fail to get security snp quoute: e = {:?}",
                     e
                 ),
             };
@@ -139,7 +148,7 @@ fn get_ra_evidence(
             ra_evidence = match get_metadata_ra_evidence(report_data.clone(), extra_credential) {
                 core::result::Result::Ok(ra_evidence_content) => ra_evidence_content,
                 Err(e) => bail!(
-                    "confilesystem10 - fail to get metadata emulate quoute: e = {:?}",
+                    "confilesystem5 - fail to get metadata snp quoute: e = {:?}",
                     e
                 ),
             };
@@ -148,14 +157,14 @@ fn get_ra_evidence(
             ra_evidence = match get_workload_ra_evidence(report_data.clone(), extra_credential) {
                 core::result::Result::Ok(ra_evidence_content) => ra_evidence_content,
                 Err(e) => bail!(
-                    "confilesystem10 - fail to get workload emulate quoute: e = {:?}",
+                    "confilesystem5 - fail to get workload snp quoute: e = {:?}",
                     e
                 ),
             };
         }
         _ => {
             return Err(anyhow!(
-                "confilesystem10 - unavailable extra_credential.aa_attester = {:?}",
+                "confilesystem5 - unavailable extra_credential.aa_attester = {:?}",
                 extra_credential.aa_attester
             ));
         }
@@ -168,7 +177,7 @@ fn get_controller_ra_evidence(
     report_data: Vec<u8>,
     extra_credential: &crate::extra_credential::ExtraCredential,
 ) -> Result<RAEvidence> {
-    log::info!("confilesystem10 - get_controller_ra_evidence(): extra_credential.controller_crp_token.len() = {:?}", extra_credential.controller_crp_token.len());
+    log::info!("confilesystem5 - get_controller_ra_evidence(): extra_credential.controller_crp_token.len() = {:?}", extra_credential.controller_crp_token.len());
     let mut new_report_data = report_data;
     if extra_credential.controller_crp_token.len() > 0 {
         new_report_data = get_hash_48bites(&extra_credential.controller_crp_token).to_vec();
@@ -192,14 +201,14 @@ fn get_controller_ra_evidence(
     //.expect("confilesystem8 - fail to json marsh cert_chain to vec");
     let cert_chain_base64 =
         base64::engine::general_purpose::STANDARD.encode(cert_chain_vec.as_slice());
-    log::info!("confilesystem10 - EmulateAttester.get_controller_ra_evidence(): attestation_report_str = {:?}", attestation_report_str);
-    log::info!("confilesystem8 - EmulateAttester.get_controller_ra_evidence(): attestation_report_base64 = {:?}", attestation_report_base64);
+    log::info!("confilesystem5 - SnpAttester.get_controller_ra_evidence(): attestation_report_str = {:?}", attestation_report_str);
+    log::info!("confilesystem8 - SnpAttester.get_controller_ra_evidence(): attestation_report_base64 = {:?}", attestation_report_base64);
     log::info!(
-        "confilesystem8 - EmulateAttester.get_controller_ra_evidence(): cert_chain_str = {:?}",
+        "confilesystem8 - SnpAttester.get_controller_ra_evidence(): cert_chain_str = {:?}",
         cert_chain_str
     );
     log::info!(
-        "confilesystem8 - EmulateAttester.get_controller_ra_evidence(): cert_chain_base64 = {:?}",
+        "confilesystem8 - SnpAttester.get_controller_ra_evidence(): cert_chain_base64 = {:?}",
         cert_chain_base64
     );
 
@@ -260,8 +269,8 @@ fn get_metadata_ra_evidence(
         .expect("confilesystem8 - fail to json marsh metadata_attestation_report");
     let metadata_cert_chain_str = serde_json::to_string(&metadata_cert_chain)
         .expect("confilesystem8 - fail to json marsh metadata_cert_chain");
-    log::info!("confilesystem8 - EmulateAttester.get_metadata_ra_evidence(): metadata_attestation_report_str = {:?}", metadata_attestation_report_str);
-    log::info!("confilesystem8 - EmulateAttester.get_metadata_ra_evidence(): metadata_cert_chain_str = {:?}", metadata_cert_chain_str);
+    log::info!("confilesystem8 - SnpAttester.get_metadata_ra_evidence(): metadata_attestation_report_str = {:?}", metadata_attestation_report_str);
+    log::info!("confilesystem8 - SnpAttester.get_metadata_ra_evidence(): metadata_cert_chain_str = {:?}", metadata_cert_chain_str);
 
     let metadata_attester_report = AttesterReport {
         attester: extra_credential.aa_attester.clone(),
