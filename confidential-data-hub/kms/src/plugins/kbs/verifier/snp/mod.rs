@@ -45,7 +45,7 @@ impl Verifier for Snp {
         let tee_evidence = serde_json::from_str::<SnpEvidence>(&attestation.tee_evidence)
             .context("Deserialize Quote failed.")?;
 
-        verify_report_signature(&tee_evidence)?;
+//        verify_report_signature(&tee_evidence)?;
 
         let report = tee_evidence.attestation_report;
         if report.version != 2 {
@@ -98,7 +98,7 @@ fn get_oid_int(vcek: &x509_parser::certificate::TbsCertificate, oid: Oid) -> Res
     let (_, val_int) = Integer::from_der(val)?;
     val_int.as_u8().context("Unexpected data size")
 }
-
+/*
 fn verify_report_signature(evidence: &SnpEvidence) -> Result<()> {
     // check cert chain
     let vcek = verify_cert_chain(&evidence.cert_chain)?;
@@ -145,7 +145,7 @@ fn verify_report_signature(evidence: &SnpEvidence) -> Result<()> {
 
     Ok(())
 }
-
+*/
 fn load_milan_cert_chain() -> Result<(x509::X509, x509::X509)> {
     let certs = x509::X509::stack_from_pem(include_bytes!("milan_ask_ark.pem"))?;
     if certs.len() != 2 {

@@ -40,7 +40,7 @@ default = ["kbs"]
 aliyun = ["secret/aliyun"]
 
 # support coco-KBS to provide confidential resources
-kbs = ["kms/kbs", "secret/kbs"]
+kbs = ["kms/kbs", "kms/snp-verifier", "secret/kbs"]
 
 # support sev to provide confidential resources
 #sev = ["kms/sev", "dep:sev", "secret/sev"]
