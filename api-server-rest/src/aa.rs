@@ -136,6 +136,7 @@ impl ApiHandler for AAClient {
                         .get_evidence_extra(runtime_data, &extra_credential)
                         .await
                         .unwrap_or_else(|e| e.to_string().into());
+                    println!("confilesystem20 - AAClient::handle_request() get_evidence_extra(): done");
                     return self.octet_stream_response(evidence_rsp);
                 }
                 None => return self.bad_request(),
@@ -233,7 +234,7 @@ impl AAClient {
             .client
             .get_evidence(ttrpc::context::with_timeout(TTRPC_TIMEOUT), &req)
             .await?;
-
+        println!("confilesystem10 - AAClient::get_evidence_extra(): success");
         let evidence_aa_rsp = EvidenceAARsp{
             tee_type: res.Tee.value(),
             evidence: res.Evidence,

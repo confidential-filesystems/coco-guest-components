@@ -339,7 +339,11 @@ fn get_workload_ra_evidence(
     Ok(ra_evidence)
 }
 
-fn get_attestation_report(report_data: Vec<u8>) -> AttestationReport {
+fn get_attestation_report(mut report_data: Vec<u8>) -> AttestationReport {
+    if report_data.len() < 64 {
+        report_data.resize(64, 0);
+    }
+
     log::info!(
         "confilesystem5 - get_attestation_report(): report_data.len() = {:?}",
         report_data.len()
@@ -348,6 +352,7 @@ fn get_attestation_report(report_data: Vec<u8>) -> AttestationReport {
     let mut firmware = Firmware::open()
         .expect("confilesystem5 - SnpAttester.get_evidence(): fail to Firmware::open()");
     let data = report_data.as_slice().try_into().expect("report_data as slice error");
+    log::info!("confilesystem5 - try to get report");
 
     let mut attestation_report = firmware
         .get_report(None, Some(data), Some(0))

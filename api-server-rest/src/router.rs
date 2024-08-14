@@ -104,9 +104,12 @@ impl Router {
             match self.routes.get(root_path) {
                 Some(handler) => {
                     match handler.handle_request(remote_addr, &local_url, req).await {
-                        core::result::Result::Ok(resp) => return Ok(resp),
+                        core::result::Result::Ok(resp) => {
+                            println!("confilesystem: Handled request: {}", local_url);
+                            return Ok(resp);
+                        },
                         Err(e) => {
-                            println!("Error handling request: {}", e);
+                            println!("confilesystem: Error handling request: {}", e);
                             return Ok(Response::builder().status(500).body(Body::from(e.to_string()))?);
                         },
                     }
