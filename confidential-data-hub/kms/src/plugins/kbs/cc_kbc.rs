@@ -422,11 +422,11 @@ pub async fn set_resource(
         tee_evidence: evidence_string,
     };
     //let repository = LocalFs::new(&LocalFsRepoDesc::default())?;
-//    let repository = Box::new(LocalFs::new(&LocalFsRepoDesc::default())?) as Box<dyn crate::plugins::kbs::resource::Repository + Send + Sync>;
-//    let evaluate_result = tee_verifier.evaluate(challenge, &attestation, &repository)
-//        .await
-//        .map_err(|e| anyhow!("Verifier evaluate failed: {e:?}"))?;
-//    println!("confilesystem20 println- set_resource(): evidence.evaluate_result = {:?}", evaluate_result);
+   let repository = Box::new(LocalFs::new(&LocalFsRepoDesc::default())?) as Box<dyn crate::plugins::kbs::resource::Repository + Send + Sync>;
+   let evaluate_result = tee_verifier.evaluate(challenge, &attestation, &repository)
+       .await
+       .map_err(|e| anyhow!("Verifier evaluate failed: {e:?}"))?;
+   println!("confilesystem20 println- set_resource(): evidence.evaluate_result = {:?}", evaluate_result);
 
     let jwe = kbs_protocol::jwe::jwe(evidence.tee_pubkey, resource_bytes)?;
     let resource_bytes_ciphertext = serde_json::to_vec(&jwe)?;
@@ -525,11 +525,11 @@ pub async fn delete_resource(
         tee_evidence: evidence_string,
     };
     //let repository = LocalFs::new(&LocalFsRepoDesc::default())?;
-//    let repository = Box::new(LocalFs::new(&LocalFsRepoDesc::default())?) as Box<dyn crate::plugins::kbs::resource::Repository + Send + Sync>;
-//    let evaluate_result = tee_verifier.evaluate(challenge.to_string(), &attestation, &repository)
-//        .await
-//        .map_err(|e| anyhow!("Verifier evaluate failed: {e:?}"))?;
-//    println!("confilesystem20 println- delete_resource(): evidence.evaluate_result = {:?}", evaluate_result);
+   let repository = Box::new(LocalFs::new(&LocalFsRepoDesc::default())?) as Box<dyn crate::plugins::kbs::resource::Repository + Send + Sync>;
+   let evaluate_result = tee_verifier.evaluate(challenge.to_string(), &attestation, &repository)
+       .await
+       .map_err(|e| anyhow!("Verifier evaluate failed: {e:?}"))?;
+   println!("confilesystem20 println- delete_resource(): evidence.evaluate_result = {:?}", evaluate_result);
 
     let jwe = kbs_protocol::jwe::jwe(evidence.tee_pubkey, resource_bytes)?;
     let resource_bytes_ciphertext = serde_json::to_vec(&jwe)?;
