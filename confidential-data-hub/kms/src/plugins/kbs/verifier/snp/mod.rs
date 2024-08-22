@@ -20,6 +20,7 @@ use sha2::{Digest, Sha384, Sha256};
 use x509_parser::prelude::*;
 use tokio::fs;
 use std::path::Path;
+use crate::plugins::kbs::get_kbs_infos;
 use crate::plugins::kbs::verifier::types::{TeeEvidenceParsedClaim, RAEvidence, AttReport};
 
 #[derive(Serialize, Deserialize)]
@@ -39,6 +40,7 @@ const PROC_TYPE_MILAN: &str = "Milan";
 const PROC_TYPE_GENOA: &str = "Genoa";
 /// 4th Gen AMD EPYC Processor (Standard)
 const CERT_STORAGE_PATH: &str = "/run/as/certs/";
+const MEASUREMENT_SERVER: &str = "https://github.com/confidential-filesystems/filesystem-measurement/blob/main/measurements";
 
 #[derive(Debug, Default)]
 pub struct Snp {}
@@ -113,11 +115,6 @@ async fn verify_tee_evidence(
 
     // check security report
     let security_att_report = tee_evidence.attestation_reports[0].attestation_report;
-    // TODO: check ld
-    // if security_att_report.measurement != "security_ld" {
-    //     warn!("Invalid security measurement!");
-    //     return Err(anyhow!("Invalid security measurement!"));
-    // }
 
     if security_att_report.version != 2 {
         return Err(anyhow!("Unexpected report version"));
@@ -133,9 +130,42 @@ async fn verify_tee_evidence(
         return Err(anyhow!("Security report data verification failed!"));
     }
 
+    let kbs_infos = get_kbs_infos().await?;
+    if let Some((enabled, uri)) = kbs_infos.kbs_ld.split_once("::") {
+        if "false" != enabled {
+            let mut m_uri = MEASUREMENT_SERVER;
+            if !uri.is_empty() {
+                m_uri = uri;
+            }
+            check_measurement(&security_att_report, m_uri)?;
+        } else {
+            println!("confilesystem disable measurement check");
+        }
+    } else if "false" != kbs_infos.kbs_ld {
+        check_measurement(&security_att_report, MEASUREMENT_SERVER)?;
+    } else {
+        println!("confilesystem disable measurement check!");
+    }
     verify_report_signature(&tee_evidence.attestation_reports[0])?;
 
     Ok(())
+}
+
+fn check_measurement(att_report: &AttestationReport, measurement_server_url: &str) -> Result<()> {
+    let m_str: String = hex::encode(att_report.measurement);
+    let m_url: String = format!("{}/{}", measurement_server_url, m_str);
+    println!("confilesystem check measurement url: {}", m_url.clone());
+    let response = get(m_url).context("Unable to send request for measurement")?;
+    match response.status() {
+        StatusCode::OK => {
+            println!("confilesystem security measurement is ok");
+            Ok(())
+        }
+        status => {
+            println!("confilesystem invalid security measurement");
+            return Err(anyhow::anyhow!("Invalid security measurement!"))
+        },
+    }
 }
 
 fn get_oid_octets<const N: usize>(
@@ -180,6 +210,7 @@ pub fn verify_report_signature(evidence: &AttReport) -> Result<()> {
     // verify genoa first
     let mut verify_result = verify(PROC_TYPE_GENOA, &evidence, &sig, data);
     if verify_result.is_err() {
+        println!("verify genoa failed: {:?}", verify_result);
         verify_result = verify(PROC_TYPE_MILAN, &evidence, &sig, data);
     }
     let vcek = verify_result?;
