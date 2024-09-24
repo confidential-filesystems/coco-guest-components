@@ -59,7 +59,7 @@ ocicrypt-rs = { path = "../ocicrypt-rs", default-features = false, features = [
 ], optional = true }
 prost = { workspace = true, optional = true }
 protobuf = { workspace = true, optional = true }
-reqwest = { workspace = true, features = ["json"], optional = true }
+reqwest = { workspace = true, features = ["json", "blocking"], optional = true }
 sequoia-openpgp = { version = "1.7.0", default-features = false, features = [
     "compression",
     "crypto-rust",
@@ -83,6 +83,8 @@ zstd = "0.12"
 
 nydus-api = { version = "0.3.0", optional = true }
 nydus-service = { version = "0.3.0", features = ["coco"], optional = true }
+
+regex = "1.10.2"
 
 [build-dependencies]
 anyhow.workspace = true

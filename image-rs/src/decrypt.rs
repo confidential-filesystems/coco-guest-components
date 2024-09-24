@@ -358,8 +358,6 @@ pub fn translate_ie_data(ie_data: &crate::extra::token::InternalExtraData) -> oc
         aa_attester: ie_data.aa_attester.clone(),
         container_name: ie_data.container_name.clone(),
         //
-        confidential_image_digests: ie_data.confidential_image_digests.clone(),
-        //
         key_id: ie_data.key_id.clone(),
         key_user: ie_data.key_user.clone(),
         authorized_res: authorized_res,

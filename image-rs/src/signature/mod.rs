@@ -33,18 +33,12 @@ use sigstore::cosign::SignatureLayer;
 use crate::{resource, signature::image::Image};
 
 use anyhow::{Context};
-
-const IMAGE_POLICY_ID_KEY: &str = "image/cfs-ivp"; // "image/policyid";
-
-//use log::{info};
-// Convenience function to obtain the scope logger.
-fn sl() -> slog::Logger {
-    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
-}
+use crate::extra::controller::IC;
 
 /// `allows_image` will check all the `PolicyRequirements` suitable for
 /// the given image. The `PolicyRequirements` is defined in
 /// [`policy_path`] and may include signature verification.
+#[allow(unused_assignments)]
 #[cfg(feature = "signature")]
 pub async fn allows_image(
     image_reference: &str,
@@ -55,20 +49,32 @@ pub async fn allows_image(
 ) -> Result<()> {
     slog::info!(sl(), "confilesystem12 - allows_image(): ie_data.aa_attester = {:?}, image_reference = {:?}, file_paths.policy_path = {:?}",
         ie_data.aa_attester, image_reference, file_paths.policy_path);
-    //use crate::{resource, signature::image::Image};
-
+    let cid = ie_data.cid.clone();
+    let mut digests: Vec<String>= vec![];
+    {
+        let ic = IC.lock().unwrap();
+        digests = ic.get_digests();
+    }
+    let container_command = ie_data.container_command.clone();
     if ie_data.aa_attester == crate::extra::token::ATTESTER_SECURITY
         || ie_data.aa_attester == crate::extra::token::ATTESTER_CONTROLLER
         || ie_data.aa_attester == crate::extra::token::ATTESTER_METADATA {
-        if ie_data.confidential_image_digests.contains(&image_digest.to_string()) {
-            slog::info!(sl(), "confilesystem12 0-In- allows_image(): image_reference = {:?}, image_digest = {:?} In ie_data.confidential_image_digests = {:?}",
-                    image_reference, image_digest, ie_data.confidential_image_digests);
-            return Ok(());
+        {
+            let mut ic = IC.lock().unwrap();
+            if ic.is_allowed_digest(image_digest.to_string()) {
+                slog::info!(sl(), "confilesystem12 0-In- allows_image(): image_reference = {:?}, image_digest = {:?} In confidential_image_digests = {:?}",
+                    image_reference, image_digest, digests);
+                let result = ic.is_allowed_command(cid, container_command.clone());
+                if result.is_err() {
+                    return Err(anyhow::anyhow!("confilesystem12 - command {:?} is not allowed", container_command));
+                }
+                return Ok(());
+            }
         }
-        slog::info!(sl(), "confilesystem12 0-NotIn- allows_image(): image_reference = {:?}, image_digest = {:?} Not In ie_data.confidential_image_digests = {:?}",
-                    image_reference, image_digest, ie_data.confidential_image_digests);
+        slog::info!(sl(), "confilesystem12 0-NotIn- allows_image(): image_reference = {:?}, image_digest = {:?} Not In confidential_image_digests = {:?}",
+                    image_reference, image_digest, digests);
         return Err(anyhow::anyhow!("confilesystem12 - allows_image(): Not find image_digest = {:?} in confidential_image_digests = {:?} for ie_data.aa_attester = {:?}",
-                image_digest, ie_data.confidential_image_digests, ie_data.aa_attester));
+                image_digest, digests, ie_data.aa_attester));
     }
 
     let reference = oci_distribution::Reference::try_from(image_reference)?;
@@ -79,21 +85,32 @@ pub async fn allows_image(
     let signature_layers_result = match get_signature_layers(&image, auth).await {
         Ok(layers) => {
             ie_data.is_workload_container = true;
+            {
+                let mut ic = IC.lock().unwrap();
+                ic.add_workload_container_id(cid.clone());
+            }
             Ok(layers)
         },
         Err(e) => {
             ie_data.is_workload_container = false;
             slog::info!(sl(), "confilesystem12 1-Err- allows_image(): image_reference = {:?}, image_digest = {:?} -> e = {:?}",
                 image_reference, image_digest, e);
-            if ie_data.confidential_image_digests.contains(&image_digest.to_string()) {
-                slog::info!(sl(), "confilesystem12 1-In- allows_image(): image_reference = {:?}, image_digest = {:?} In ie_data.confidential_image_digests = {:?}",
-                    image_reference, image_digest, ie_data.confidential_image_digests);
-                return Ok(());
+            {
+                let mut ic = IC.lock().unwrap();
+                if ic.is_allowed_digest(image_digest.to_string()) {
+                    slog::info!(sl(), "confilesystem12 1-In- allows_image(): image_reference = {:?}, image_digest = {:?} In confidential_image_digests = {:?}",
+                    image_reference, image_digest, digests);
+                    let result = ic.is_allowed_command(cid, container_command.clone());
+                    if result.is_err() {
+                        return Err(anyhow::anyhow!("confilesystem12 - command {:?} is not allowed", container_command));
+                    }
+                    return Ok(());
+                }
             }
-            slog::info!(sl(), "confilesystem12 1-NotIn- allows_image(): image_reference = {:?}, image_digest = {:?} Not In ie_data.confidential_image_digests = {:?}",
-                    image_reference, image_digest, ie_data.confidential_image_digests);
+            slog::info!(sl(), "confilesystem12 1-NotIn- allows_image(): image_reference = {:?}, image_digest = {:?} Not In confidential_image_digests = {:?}",
+                    image_reference, image_digest, digests);
             Err(anyhow::anyhow!("confilesystem12 - allows_image(): fail to get signature layers AND not find image_digest = {:?} in confidential_image_digests = {:?}",
-                image_digest, ie_data.confidential_image_digests))
+                image_digest, digests))
         }
     };
     if signature_layers_result.is_err() {
@@ -115,16 +132,24 @@ pub async fn allows_image(
         Some(content) => content,
         None => {
             ie_data.is_workload_container = false;
-            slog::info!(sl(), "confilesystem12 2-None- allows_image(): optional.extra.get({:?}) -> None", IMAGE_POLICY_ID_KEY);
-            if ie_data.confidential_image_digests.contains(&image_digest.to_string()) {
-                slog::info!(sl(), "confilesystem12 2-In- allows_image(): image_reference = {:?}, image_digest = {:?} In ie_data.confidential_image_digests = {:?}",
-                    image_reference, image_digest, ie_data.confidential_image_digests);
-                return Ok(());
+            {
+                let mut ic = IC.lock().unwrap();
+                ic.remove_workload_container_id(cid.clone());
+                slog::info!(sl(), "confilesystem12 2-None- allows_image(): optional.extra.get({:?}) -> None", IMAGE_POLICY_ID_KEY);
+                if ic.is_allowed_digest(image_digest.to_string()) {
+                    slog::info!(sl(), "confilesystem12 2-In- allows_image(): image_reference = {:?}, image_digest = {:?} In confidential_image_digests = {:?}",
+                    image_reference, image_digest, digests);
+                    let result = ic.is_allowed_command(cid, container_command.clone());
+                    if result.is_err() {
+                        return Err(anyhow::anyhow!("confilesystem12 - command {:?} is not allowed", container_command));
+                    }
+                    return Ok(());
+                }
             }
-            slog::info!(sl(), "confilesystem12 2-NotIn- allows_image(): image_reference = {:?}, image_digest = {:?} Not In ie_data.confidential_image_digests = {:?}",
-                    image_reference, image_digest, ie_data.confidential_image_digests);
+            slog::info!(sl(), "confilesystem12 2-NotIn- allows_image(): image_reference = {:?}, image_digest = {:?} Not In confidential_image_digests = {:?}",
+                    image_reference, image_digest, digests);
             return Err(anyhow::anyhow!("confilesystem12 - allows_image(): fail to get IMAGE_POLICY_ID AND not find image_digest = {:?} in confidential_image_digests = {:?}",
-                image_digest, ie_data.confidential_image_digests));
+                image_digest, digests));
         }
     };
     if value.as_str().is_none() {
@@ -136,6 +161,14 @@ pub async fn allows_image(
     let image_sign_addr = crate::extra::token::get_addr_from_res_id(image_policy_id)?;
     if !ie_data.addr_is_ok(&image_sign_addr) {
         return Err(anyhow::anyhow!("confilesystem12 - allows_image(): image_sign_addr = {:?} -> addr_is_ok() = false", image_sign_addr));
+    }
+    {
+        let mut ic = IC.lock().unwrap();
+        ic.set_addr(image_sign_addr);
+        let result = ic.is_allowed_command(cid, container_command.clone());
+        if result.is_err() {
+            return Err(anyhow::anyhow!("confilesystem12 - command {:?} is not allowed", container_command));
+        }
     }
 
     // Read the set of signature schemes that need to be verified
@@ -167,6 +200,14 @@ pub async fn allows_image(
         .is_image_allowed(image, auth, signature_layers, ie_data)
         .await
         .map_err(|e| anyhow::anyhow!("confilesystem18 - allows_image(): policy.is_image_allowed(): Validate image failed: {:?}", e))
+}
+
+const IMAGE_POLICY_ID_KEY: &str = "image/cfs-ivp"; // "image/policyid";
+
+//use log::{info};
+// Convenience function to obtain the scope logger.
+fn sl() -> slog::Logger {
+    slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
 }
 
 #[cfg(feature = "signature")]
