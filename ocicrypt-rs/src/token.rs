@@ -26,8 +26,6 @@ pub struct InternalExtraData {
     pub aa_attester: String,
     pub container_name: String,
     //
-    pub confidential_image_digests: Vec<String>,
-    //
     pub key_id: String,
     pub key_user: String,
     pub authorized_res: Vec<AuthorizedRes>,

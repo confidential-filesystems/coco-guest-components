@@ -29,7 +29,6 @@ use jwt_simple::prelude::{
 use jwt_simple::prelude::*;
 
 use crate::resource;
-
 //
 pub const POD_CONTAINERS_SHARE_DIR: &str = "/run/kata-containers/sandbox/";
 
@@ -45,7 +44,7 @@ const CONTROLLER_CFS_EC_PUB_KEY: &str = "controller/cfs-ec-pub";
 const CONTROLLER_CFS_EC_PUB_KBS_PREFIX: &str = "kbs:///controller/cfs-ec-pub/";
 
 // Convenience function to obtain the scope logger.
-fn sl() -> slog::Logger {
+pub fn sl() -> slog::Logger {
     slog_scope::logger().new(slog::o!("subsystem" => "cgroups"))
 }
 
@@ -118,10 +117,10 @@ impl ExternalExtraData {
         }
     }
 
-    pub async fn proc(&self, aa_kbc_params: &str, confidential_image_digests_str: &str) -> Result<InternalExtraData, Error> {
-        info!(sl(), "confilesystem5 - ExternalExtraData.proc(): aa_kbc_params = {:?}, confidential_image_digests_str = {:?}, \
+    pub async fn proc(&self, aa_kbc_params: &str) -> Result<InternalExtraData, Error> {
+        info!(sl(), "confilesystem5 - ExternalExtraData.proc(): aa_kbc_params = {:?}, \
             self.aa_attester = {:?}, self.controller_crp_token.len() = {:?}",
-            aa_kbc_params, confidential_image_digests_str, self.aa_attester, self.controller_crp_token.len());
+            aa_kbc_params, self.aa_attester, self.controller_crp_token.len());
         if self.aa_attester != ATTESTER_SECURITY.to_string()
             && self.aa_attester != ATTESTER_CONTROLLER.to_string()
             && (self.controller_crp_token.len() == 0
@@ -138,15 +137,6 @@ impl ExternalExtraData {
                                                   self.aa_attester.to_string(),
                                                   self.container_name.to_string(),
                                                   self.is_init_container);
-        let confidential_image_digests_tmp: Vec<&str> = confidential_image_digests_str
-            .split(',').filter(|&s| !s.is_empty()).collect();
-        let mut confidential_image_digests = Vec::new();
-        for digest in confidential_image_digests_tmp {
-            confidential_image_digests.push(digest.to_string());
-        }
-        info!(sl(), "confilesystem5 - ExternalExtraData.proc(): confidential_image_digests_str = {:?} -> confidential_image_digests = {:?}",
-            confidential_image_digests_str, confidential_image_digests);
-        ie_data.confidential_image_digests = confidential_image_digests;
 
         if self.controller_crp_token.len() == 0 {
             // for controller?
@@ -235,8 +225,6 @@ pub struct InternalExtraData {
     pub aa_attester: String,
     pub container_name: String,
     //
-    pub confidential_image_digests: Vec<String>,
-    //
     pub key_id: String,
     pub key_user: String,
     pub authorized_res: Vec<AuthorizedRes>,
@@ -245,6 +233,9 @@ pub struct InternalExtraData {
     //
     pub is_init_container: bool,
     pub is_workload_container: bool,
+
+    pub cid: String, // container id
+    pub container_command: Vec<String>, // spec#process#args
 }
 
 impl InternalExtraData {
@@ -257,8 +248,7 @@ impl InternalExtraData {
             controller_cert_chain: controller_cert_chain,
             aa_attester: aa_attester,
             container_name: container_name,
-            //
-            confidential_image_digests: vec![],
+            cid: "".to_string(),
             //
             key_id: "".to_string(),
             key_user: "".to_string(),
@@ -267,6 +257,7 @@ impl InternalExtraData {
             //
             is_init_container: is_init_container,
             is_workload_container: false,
+            container_command: vec![],
         }
     }
 
